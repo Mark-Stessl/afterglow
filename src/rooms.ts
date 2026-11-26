@@ -9,13 +9,13 @@ export interface Room {
   light: string;
 }
 
-/** Top floor first, the order the building is drawn in. */
+/** Left to right, the order the building is drawn in. */
 export const ROOMS: Room[] = [
-  { id: 'trophies', name: 'Trophy room', holds: 'Trophies, stats, calendar', light: 'var(--color-room-trophies)' },
   { id: 'cinema', name: 'Cinema', holds: 'Movies', light: 'var(--color-room-cinema)' },
   { id: 'games', name: 'Game room', holds: 'Games', light: 'var(--color-room-games)' },
   { id: 'living', name: 'Living room', holds: 'Series and anime', light: 'var(--color-room-living)' },
   { id: 'reading', name: 'Reading nook', holds: 'Manga', light: 'var(--color-room-reading)' },
+  { id: 'trophies', name: 'Trophy room', holds: 'Trophies, stats, calendar', light: 'var(--color-room-trophies)' },
 ];
 
 export const roomById = (id: string) => ROOMS.find(r => r.id === id);

@@ -4,7 +4,7 @@ Personal tracker (games, movies, series, anime, manga, trophies, stats, calendar
 
 ## Setup
 - Vite + React 19 + TypeScript + Tailwind v4. Hash router (`src/router.ts`), GitHub Pages at `https://mark-stessl.github.io/afterglow/`, deployed by `.github/workflows/deploy.yml` on push to `main`.
-- Rooms are defined once in `src/rooms.ts`. The flat building overview (`src/components/Building.tsx`) is also the fallback the 3D building replaces later.
+- Rooms are defined once in `src/rooms.ts`. The flat building overview (rooms left to right; sideways swipe on the phone, `src/components/Building.tsx`) is also the fallback the 3D building replaces later.
 - Design tokens ("Late Show" palette, fonts, room light colours) live in `src/index.css` under `@theme`. Use the tokens, no raw hex in components except scene/art colours.
 - Icons: `public/icon.svg` is the source; PNGs in `public/icons/` are rendered from it.
 

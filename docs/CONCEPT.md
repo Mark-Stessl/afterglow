@@ -6,19 +6,19 @@ Same ground as Nightshelf (games, movies, series, anime, manga, trophies, stats,
 
 ## 1. The overview: one building at night
 
-One 3D scene instead of five separate ones: a **building at night, cut open like a dollhouse**. Each floor is one lit room. That ties the five sceneries together and gives the app one look.
+One 3D scene instead of five separate ones: a **long building at night, cut open like a dollhouse**, with its five rooms **side by side, left to right**. Each room is lit in its own colour. That ties the five sceneries together and gives the app one look.
 
-| Floor | Room | What it opens | Light colour |
+| Left to right | Room | What it opens | Light colour |
 |---|---|---|---|
-| 5 | **Trophy room** (attic) | Trophies, stats, calendar | gold / cyan |
-| 4 | **Cinema** | Movies | warm amber |
-| 3 | **Game room** | Games (PS5, PS4, Switch, PC/Steam) | cool blue |
-| 2 | **Living room** | Series and anime (two TV channels) | purple |
-| 1 | **Reading nook** | Manga | yellow lamp light |
+| 1 | **Cinema** | Movies | warm amber |
+| 2 | **Game room** | Games (PS5, PS4, Switch, PC/Steam) | cool blue |
+| 3 | **Living room** | Series and anime (two TV channels) | purple |
+| 4 | **Reading nook** | Manga | yellow lamp light |
+| 5 | **Trophy room** | Trophies, stats, calendar | mint |
 
 - **Hover / tap a room:** its light turns up, the others dim, the name shows.
 - **Click a room:** the camera flies in (≈ 700 ms) and the room's own UI fades in on top of it.
-- **Phone:** the building is tall and narrow, so **swipe up/down moves floor to floor**; tap to enter. Bottom nav stays as a quick jump.
+- **Phone:** the row is wider than the screen, so **swipe left/right moves room to room** (it snaps to one room); tap to enter. Bottom nav stays as a quick jump.
 - **Small life in the scene:** the TV flickers, the projector beam has dust, a trophy glints now and then. Only one or two things move at a time.
 
 ---
@@ -52,7 +52,7 @@ One 3D scene instead of five separate ones: a **building at night, cut open like
 - **Open a manga:** the book tips out of the shelf and opens; chapter progress is a **bookmark ribbon**; new chapters as a little sticky note.
 
 ### Trophy room (trophies, stats, calendar)
-Three stations in one attic room:
+Three stations in one room:
 - **Display case (Vitrine) in 3D:** platinum cups on glass shelves, each with the game cover as a medal. Orbit/drag to look, click a cup → that game's trophy list. Glass reflection, soft spotlights.
 - **Stats = scoreboard:** an arcade-style **LED scoreboard** on the wall: trophy level, platinum count, hours played, episodes watched, chapters read. Click → full stats page and year review (story image share stays).
 - **Calendar = departure board:** upcoming episodes, season starts, movie and game releases on a **split-flap board** ("Departures") with time and type. Click → month / week / list.

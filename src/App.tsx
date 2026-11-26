@@ -38,7 +38,7 @@ function BottomNav({ active }: { active?: string }) {
       className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <ul className="m-0 grid list-none grid-cols-5 p-0">
-        {[...ROOMS].reverse().map(r => (
+        {ROOMS.map(r => (
           <li key={r.id}>
             <a
               href={href(r.id)}
@@ -75,7 +75,7 @@ export function App() {
         {room ? (
           <Room room={room} />
         ) : (
-          <section className="px-5 pt-8 pb-28 md:pb-16">
+          <section className="px-5 pt-8 pb-28 md:flex md:min-h-[calc(100dvh-3.5rem)] md:flex-col md:justify-center md:pb-16">
             <h1 className="sr-only">Afterglow</h1>
             <Building />
             <p className="m-0 mt-6 text-center text-xs text-muted">Build {__BUILD__}</p>
