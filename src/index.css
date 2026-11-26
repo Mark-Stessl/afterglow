@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* Late Show: neutral ink black, warm cinema amber, one light colour per room. */
+@theme {
+  --color-ink: #0A0A0F;
+  --color-surface: #14141C;
+  --color-raised: #1C1C27;
+  --color-line: #262633;
+  --color-text: #ECEAF2;
+  --color-muted: #9A97AD;
+  --color-amber: #F5B544;
+  --color-danger: #E5484D;
+
+  --color-room-cinema: #F5B544;
+  --color-room-games: #5B8CFF;
+  --color-room-living: #A77BFF;
+  --color-room-reading: #FFD66B;
+  --color-room-trophies: #5EEAD4;
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html { color-scheme: dark; background: var(--color-ink); }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--color-ink);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  :focus-visible { outline: 2px solid var(--color-amber); outline-offset: 3px; border-radius: 6px; }
+}
+
+/* The building: hovering one floor dims the others (pointer devices only). */
+@media (hover: hover) {
+  .building:has(.floor:hover) .floor:not(:hover) { opacity: 0.45; }
+}
+.floor { transition: opacity 240ms var(--ease-out-quint); }
+.floor .window { transition: box-shadow 240ms var(--ease-out-quint), filter 240ms var(--ease-out-quint); }
+@media (hover: hover) {
+  .floor:hover .window { filter: brightness(1.18); }
+}
+.floor:active .window { filter: brightness(1.25); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+}

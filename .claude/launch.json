@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "afterglow", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "preview", "--port", "8766", "--strictPort"], "port": 8766 }
+  ]
+}
