@@ -3,6 +3,7 @@ import { ROOMS, roomById } from './rooms';
 import { href, useRoute } from './router';
 import { Building } from './components/Building';
 import { Room } from './views/Room';
+import { DataPage } from './views/DataPage';
 
 function TopBar({ active }: { active?: string }) {
   return (
@@ -12,6 +13,7 @@ function TopBar({ active }: { active?: string }) {
           <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="h-7 w-7" />
           <span className="font-display text-[17px] font-semibold">Afterglow</span>
         </a>
+        <div className="flex items-center gap-1">
         <nav aria-label="Rooms" className="hidden gap-1 md:flex">
           {ROOMS.map(r => (
             <a
@@ -25,6 +27,14 @@ function TopBar({ active }: { active?: string }) {
             </a>
           ))}
         </nav>
+          <a
+            href={href('data')}
+            aria-current={active === 'data' ? 'page' : undefined}
+            className="rounded-md px-3 py-2 text-sm text-muted no-underline hover:text-text aria-[current=page]:text-text md:ml-2 md:border-l md:border-line md:pl-4"
+          >
+            Data
+          </a>
+        </div>
       </div>
     </header>
   );
@@ -62,17 +72,20 @@ function BottomNav({ active }: { active?: string }) {
 export function App() {
   const [first] = useRoute();
   const room = first ? roomById(first) : undefined;
+  const isData = first === 'data';
 
   useEffect(() => {
-    document.title = room ? `${room.name} · Afterglow` : 'Afterglow';
+    document.title = room ? `${room.name} · Afterglow` : isData ? 'Data · Afterglow' : 'Afterglow';
     window.scrollTo(0, 0);
-  }, [room]);
+  }, [room, isData]);
 
   return (
     <div className="min-h-dvh">
-      <TopBar active={room?.id} />
+      <TopBar active={isData ? 'data' : room?.id} />
       <main>
-        {room ? (
+        {isData ? (
+          <DataPage />
+        ) : room ? (
           <Room room={room} />
         ) : (
           <section className="px-5 pt-8 pb-28 md:flex md:min-h-[calc(100dvh-3.5rem)] md:flex-col md:justify-center md:pb-16">
