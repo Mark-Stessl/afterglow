@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concept board: names, icon, palettes, covers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0A0A0F; --s1:#13131B; --s2:#1C1C27; --line:#2A2A38; --tx:#ECEAF2; --mut:#8D8AA0; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--tx); font:15px/1.55 Inter, system-ui, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 56px 24px 96px; }
+  h1,h2,h3 { font-family:"Space Grotesk", sans-serif; letter-spacing:-.01em; margin:0; }
+  h1 { font-size: 34px; }
+  h2 { font-size: 22px; margin: 64px 0 6px; }
+  .lead { color:var(--mut); margin: 8px 0 0; max-width: 62ch; }
+  .sub { color:var(--mut); margin: 0 0 22px; }
+  .grid { display:grid; gap:16px; }
+  .g3 { grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); }
+  .card { background:var(--s1); border:1px solid var(--line); border-radius:14px; padding:18px; }
+  .pick { border-color:#F5B544; }
+  .tag { display:inline-block; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#F5B544; margin-bottom:6px; }
+  .name { font-family:"Space Grotesk"; font-size:22px; font-weight:700; }
+  .why { color:var(--mut); font-size:14px; margin-top:4px; }
+  .icons { display:flex; gap:28px; flex-wrap:wrap; }
+  .icon-wrap { text-align:center; }
+  .icon-wrap svg { width:132px; height:132px; display:block; border-radius:30px; box-shadow: 0 20px 50px -20px #000; }
+  .icon-wrap .small { display:flex; gap:10px; justify-content:center; margin-top:12px; align-items:end; }
+  .icon-wrap .small svg { box-shadow:none; }
+  .icon-wrap p { margin:10px 0 0; font-weight:600; }
+  .icon-wrap span { color:var(--mut); font-size:13px; }
+  .sw { display:flex; height:64px; border-radius:10px; overflow:hidden; margin:12px 0; }
+  .sw div { flex:1; position:relative; }
+  .sw div span { position:absolute; bottom:6px; left:6px; font: 11px ui-monospace, monospace; background:#000c; color:#fff; padding:1px 3px; border-radius:3px; }
+  .demo { border-radius:10px; padding:14px; margin-top:10px; }
+  .demo .row { display:flex; justify-content:space-between; align-items:center; }
+  .demo .btn { border:0; border-radius:8px; padding:7px 12px; font:600 13px Inter; }
+  .demo .bar { height:6px; border-radius:3px; margin-top:12px; overflow:hidden; }
+  .demo .bar i { display:block; height:100%; width:64%; }
+  .rooms { display:flex; gap:6px; margin-top:10px; }
+  .rooms b { flex:1; height:24px; border-radius:5px; font:600 11px Inter; display:grid; place-items:center; color:#111; }
+  /* covers */
+  .covers { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end; }
+  .cv { text-align:center; font-size:13px; color:var(--mut); }
+  .cv .obj { margin: 0 auto 10px; }
+  .art { position:absolute; inset:0; }
+  .a1 { background: radial-gradient(circle at 30% 30%, #ffb35c, transparent 50%), linear-gradient(160deg,#3a1d5c,#0e1a3a); }
+  .a2 { background: radial-gradient(circle at 70% 40%, #6ee7f9, transparent 45%), linear-gradient(200deg,#103a3a,#0b0f1e); }
+  .a3 { background: radial-gradient(circle at 50% 70%, #ff5c7a, transparent 50%), linear-gradient(170deg,#2a0e2e,#120a18); }
+  .a4 { background: radial-gradient(circle at 40% 30%, #f3f0e6, transparent 40%), linear-gradient(180deg,#d9d2c3,#8a7f6a); }
+  .a5 { background: radial-gradient(circle at 60% 35%, #a5f3a0, transparent 45%), linear-gradient(170deg,#18402a,#0b1a12); }
+  .bluray { width:120px; height:152px; position:relative; border-radius:5px 7px 7px 5px; overflow:hidden; box-shadow: inset 4px 0 0 #0d3fa6, 0 14px 30px -12px #000; }
+  .bluray .top { position:absolute; top:0; left:0; right:0; height:16px; background:linear-gradient(#1f6dff,#1150c9); font:700 8px Inter; letter-spacing:.2em; color:#fff; display:grid; place-items:center; z-index:2; }
+  .bluray .art { top:16px; left:4px; }
+  .bluray .shine { position:absolute; inset:0; background:linear-gradient(115deg,transparent 40%,#ffffff22 48%,transparent 56%); z-index:3; }
+  .ps5 { width:118px; height:148px; position:relative; border-radius:4px; overflow:hidden; box-shadow:0 14px 30px -12px #000; }
+  .ps5 .top { position:absolute; top:0; left:0; right:0; height:20px; background:#f4f4f6; z-index:2; display:flex; align-items:center; padding-left:8px; }
+  .ps5 .top i { width:18px; height:6px; background:#111; border-radius:2px; }
+  .ps5 .art { top:20px; }
+  .switch { width:110px; height:170px; position:relative; border-radius:6px; overflow:hidden; background:#e60012; box-shadow:0 14px 30px -12px #000; }
+  .switch .art { inset:22px 6px 6px 6px; border-radius:2px; }
+  .switch .top { position:absolute; top:5px; left:8px; width:30px; height:11px; border-radius:3px; background:#fff; }
+  .manga { width:104px; height:156px; position:relative; box-shadow:0 14px 30px -12px #000; border-radius:1px 4px 4px 1px; }
+  .manga .art { right:5px; overflow:hidden; border-radius:1px 2px 2px 1px; }
+  .manga .pages { position:absolute; top:3px; bottom:3px; right:0; width:6px; background:repeating-linear-gradient(90deg,#efe9dc 0 1px,#cfc6b2 1px 2px); border-radius:0 3px 3px 0; }
+  .manga .obi { position:absolute; left:0; right:5px; bottom:12px; height:26px; background:#f6e04b; color:#111; font:700 9px Inter; display:grid; place-items:center; }
+  .manga .vol { position:absolute; top:6px; left:6px; background:#fff; color:#111; font:700 10px "Space Grotesk"; padding:1px 5px; border-radius:2px; }
+  .anime { width:120px; height:152px; position:relative; border-radius:4px; overflow:hidden; box-shadow:0 14px 30px -12px #000; }
+  .anime .obi { position:absolute; top:0; bottom:0; left:0; width:22px; background:#fff; color:#111; writing-mode:vertical-rl; font:700 10px Inter; letter-spacing:.12em; display:grid; place-items:center; z-index:2; }
+  .box { width:150px; height:150px; position:relative; transform: perspective(500px) rotateY(-18deg); transform-origin:left; }
+  .box .front { position:absolute; inset:0 0 0 22px; border-radius:2px; overflow:hidden; }
+  .box .spine { position:absolute; left:0; top:0; bottom:0; width:22px; background:#1a1626; color:#cfc6ff; font:700 10px "Space Grotesk"; writing-mode:vertical-rl; display:grid; place-items:center; letter-spacing:.2em; border-radius:2px 0 0 2px; }
+  .ticket { width:180px; height:74px; position:relative; background:#F5B544; color:#1a1206; border-radius:8px; padding:10px 14px; text-align:left; font:600 12px Inter;
+     -webkit-mask: radial-gradient(circle 9px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 9px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat; }
+  .ticket b { display:block; font:700 15px "Space Grotesk"; }
+  .flap { display:flex; gap:3px; }
+  .flap span { width:22px; height:32px; background:#16161d; color:#F5B544; font:700 18px "Space Grotesk"; display:grid; place-items:center; border-radius:3px; position:relative; }
+  .flap span::after { content:""; position:absolute; left:0; right:0; top:50%; height:1px; background:#000; }
+  .led { background:#0b0c0a; border:1px solid #222; border-radius:8px; padding:10px 14px; font: 700 26px ui-monospace, monospace; color:#ff5a36; text-shadow:0 0 8px #ff5a36aa; letter-spacing:.1em; }
+  footer { margin-top:64px; color:var(--mut); font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Concept board</h1>
+  <p class="lead">Names, icon, colour palettes and the cover styles for the Nightshelf rebuild. Chosen: <b>Afterglow</b>, lit-building icon. The full plan (rooms, tech, build order) is in CONCEPT.md.</p>
+
+  <!-- NAMES -->
+  <h2>Name ideas</h2>
+  <p class="sub">The overview is a building at night with lit rooms, so most of these play on night, film and stage.</p>
+  <div class="grid g3">
+    <div class="card pick"><div class="tag">My pick</div><div class="name">Afterglow</div><div class="why">The glow of lit windows at night, and the feeling after a good movie or a platinum. Easy to say in German and English.</div></div>
+    <div class="card"><div class="name">Backlot</div><div class="why">A film studio's lot where all the sets stand. Fits "five sceneries" exactly, a bit less known as a word.</div></div>
+    <div class="card"><div class="name">Encore</div><div class="why">"Once more", the same idea done again, better. Stage and cinema feel.</div></div>
+    <div class="card"><div class="name">Late Show</div><div class="why">Cinema and TV at night. Very clear, slightly long as an app name.</div></div>
+    <div class="card"><div class="name">Nightcap</div><div class="why">The last thing before bed. Playful, keeps "night" from Nightshelf.</div></div>
+    <div class="card"><div class="name">Moonroom</div><div class="why">A room you go to at night. Soft, short, own word.</div></div>
+    <div class="card"><div class="name">Marquee</div><div class="why">The lit sign over a cinema entrance. Strong for movies, weaker for manga.</div></div>
+    <div class="card"><div class="name">Nightshelf</div><div class="why">Keep the name, new app (v2). You lose nothing, but it carries the old feel.</div></div>
+  </div>
+
+  <!-- ICONS -->
+  <h2>Icon</h2>
+  <p class="sub">The first one shows the actual app: the building with five lit rooms, each in its room colour. It works with any of the names.</p>
+  <div class="icons">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 128 128" id="ic1">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1330"/><stop offset="1" stop-color="#07060c"/></linearGradient>
+          <radialGradient id="halo" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="#F5B544" stop-opacity=".28"/><stop offset="1" stop-color="#F5B544" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect width="128" height="128" rx="28" fill="url(#sky)"/>
+        <circle cx="64" cy="70" r="56" fill="url(#halo)"/>
+        <circle cx="96" cy="26" r="7" fill="#ECEAF2" opacity=".9"/><circle cx="99" cy="24" r="6" fill="#16112a"/>
+        <path d="M40 112V34l24-14 24 14v78z" fill="#100d1a" stroke="#2c2540" stroke-width="1.5"/>
+        <rect x="47" y="38" width="34" height="11" rx="2" fill="#5EEAD4"/>
+        <rect x="47" y="53" width="34" height="11" rx="2" fill="#F5B544"/>
+        <rect x="47" y="68" width="34" height="11" rx="2" fill="#5B8CFF"/>
+        <rect x="47" y="83" width="34" height="11" rx="2" fill="#A77BFF"/>
+        <rect x="47" y="98" width="34" height="11" rx="2" fill="#FFD66B"/>
+        <rect x="24" y="111" width="80" height="2" rx="1" fill="#2c2540"/>
+      </svg>
+      <div class="small"><svg viewBox="0 0 128 128" width="48" height="48"><use href="#ic1"/></svg><svg viewBox="0 0 128 128" width="28" height="28"><use href="#ic1"/></svg></div>
+      <p>Lit building</p><span>my pick, fits Afterglow</span>
+    </div>
+    <div class="icon-wrap">
+      <svg viewBox="0 0 128 128">
+        <rect width="128" height="128" rx="28" fill="#0B0A10"/>
+        <path d="M20 22h88" stroke="#3a1420" stroke-width="6" stroke-linecap="round"/>
+        <path d="M20 22c0 30 6 60 22 84H20z" fill="#8f1d2c"/><path d="M108 22c0 30-6 60-22 84h22z" fill="#8f1d2c"/>
+        <path d="M30 22c2 28 6 56 14 80M98 22c-2 28-6 56-14 80" stroke="#b8293d" stroke-width="2" fill="none"/>
+        <ellipse cx="64" cy="104" rx="20" ry="5" fill="#F5B544" opacity=".35"/>
+        <path d="M64 30l-14 74h28z" fill="#F5B544" opacity=".18"/>
+        <path d="M64 56l4.5 9.2 10.1 1.5-7.3 7.1 1.7 10-9-4.7-9 4.7 1.7-10-7.3-7.1 10.1-1.5z" fill="#F5B544"/>
+      </svg>
+      <p>Curtain and star</p><span>fits Encore / Late Show</span>
+    </div>
+    <div class="icon-wrap">
+      <svg viewBox="0 0 128 128">
+        <defs><linearGradient id="scr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b1d55"/><stop offset="1" stop-color="#0e1630"/></linearGradient></defs>
+        <rect width="128" height="128" rx="28" fill="#08080d"/>
+        <rect x="18" y="30" width="92" height="58" rx="8" fill="url(#scr)" stroke="#3b3360" stroke-width="2"/>
+        <circle cx="72" cy="59" r="17" fill="#ECEAF2"/><circle cx="80" cy="53" r="15" fill="#22194a"/>
+        <circle cx="40" cy="44" r="1.5" fill="#fff"/><circle cx="95" cy="76" r="1.2" fill="#fff" opacity=".7"/><circle cx="34" cy="74" r="1" fill="#fff" opacity=".6"/>
+        <path d="M52 100h24M64 88v12" stroke="#3b3360" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <p>Moon on a screen</p><span>fits Nightcap / Moonroom</span>
+    </div>
+  </div>
+
+  <!-- PALETTES -->
+  <h2>Colour palettes</h2>
+  <p class="sub">All dark. The idea: one calm base, and every room gets its own light colour, so you always know where you are.</p>
+  <div class="grid g4">
+    <!-- 1 -->
+    <div class="card pick"><div class="tag">My pick</div><h3>Late Show</h3>
+      <div class="why">Ink black with warm cinema amber. Covers look best on near-neutral dark.</div>
+      <div class="sw"><div style="background:#0A0A0F"><span>#0A0A0F</span></div><div style="background:#14141C"><span>#14141C</span></div><div style="background:#262633"><span>#262633</span></div><div style="background:#ECEAF2"><span>#ECEAF2</span></div><div style="background:#F5B544"><span>#F5B544</span></div><div style="background:#E5484D"><span>#E5484D</span></div></div>
+      <div class="demo" style="background:#14141C;border:1px solid #262633"><div class="row"><b style="color:#ECEAF2">Dune: Part Two</b><button class="btn" style="background:#F5B544;color:#1a1206">Watch</button></div><div class="bar" style="background:#262633"><i style="background:#F5B544"></i></div></div>
+      <div class="rooms"><b style="background:#F5B544">Cine</b><b style="background:#5B8CFF">Game</b><b style="background:#A77BFF">TV</b><b style="background:#FFD66B">Read</b><b style="background:#5EEAD4">Troph</b></div>
+    </div>
+    <!-- 2 -->
+    <div class="card"><h3>Amethyst 2.0</h3>
+      <div class="why">Nightshelf's violet, deeper and calmer, mint instead of cyan.</div>
+      <div class="sw"><div style="background:#0B0912"><span>#0B0912</span></div><div style="background:#15111F"><span>#15111F</span></div><div style="background:#2A2140"><span>#2A2140</span></div><div style="background:#EEE9FA"><span>#EEE9FA</span></div><div style="background:#9D7BFF"><span>#9D7BFF</span></div><div style="background:#5EEAD4"><span>#5EEAD4</span></div></div>
+      <div class="demo" style="background:#15111F;border:1px solid #2A2140"><div class="row"><b style="color:#EEE9FA">Frieren</b><button class="btn" style="background:#9D7BFF;color:#140b2e">+1 ep</button></div><div class="bar" style="background:#2A2140"><i style="background:#5EEAD4"></i></div></div>
+      <div class="rooms"><b style="background:#FFB86B">Cine</b><b style="background:#6FA0FF">Game</b><b style="background:#9D7BFF">TV</b><b style="background:#F3D27A">Read</b><b style="background:#5EEAD4">Troph</b></div>
+    </div>
+    <!-- 3 -->
+    <div class="card"><h3>Neon Arcade</h3>
+      <div class="why">Blue-black with cyan and magenta. Loud, very "game room".</div>
+      <div class="sw"><div style="background:#07080D"><span>#07080D</span></div><div style="background:#111522"><span>#111522</span></div><div style="background:#1F2538"><span>#1F2538</span></div><div style="background:#E6EAF5"><span>#E6EAF5</span></div><div style="background:#3DDCFF"><span>#3DDCFF</span></div><div style="background:#FF4FD8"><span>#FF4FD8</span></div></div>
+      <div class="demo" style="background:#111522;border:1px solid #1F2538"><div class="row"><b style="color:#E6EAF5">Astro Bot</b><button class="btn" style="background:#3DDCFF;color:#04121a">Play</button></div><div class="bar" style="background:#1F2538"><i style="background:linear-gradient(90deg,#3DDCFF,#FF4FD8)"></i></div></div>
+      <div class="rooms"><b style="background:#FF4FD8">Cine</b><b style="background:#3DDCFF">Game</b><b style="background:#8A7CFF">TV</b><b style="background:#FFE066">Read</b><b style="background:#7CFFB2">Troph</b></div>
+    </div>
+    <!-- 4 -->
+    <div class="card"><h3>Ember</h3>
+      <div class="why">Warm brown-black, orange and gold. Cosy, like lamp light.</div>
+      <div class="sw"><div style="background:#0C0A09"><span>#0C0A09</span></div><div style="background:#171311"><span>#171311</span></div><div style="background:#2E2520"><span>#2E2520</span></div><div style="background:#F3ECE6"><span>#F3ECE6</span></div><div style="background:#FF7A3D"><span>#FF7A3D</span></div><div style="background:#E9C46A"><span>#E9C46A</span></div></div>
+      <div class="demo" style="background:#171311;border:1px solid #2E2520"><div class="row"><b style="color:#F3ECE6">One Piece</b><button class="btn" style="background:#FF7A3D;color:#1a0c04">Read</button></div><div class="bar" style="background:#2E2520"><i style="background:#E9C46A"></i></div></div>
+      <div class="rooms"><b style="background:#FF7A3D">Cine</b><b style="background:#7FA8D9">Game</b><b style="background:#C49BDB">TV</b><b style="background:#E9C46A">Read</b><b style="background:#F3ECE6">Troph</b></div>
+    </div>
+  </div>
+
+  <!-- COVERS -->
+  <h2>Covers per type</h2>
+  <p class="sub">Placeholder art here; in the app the real cover goes inside. Built in CSS/SVG, so they stay sharp and fast.</p>
+  <div class="covers">
+    <div class="cv"><div class="obj bluray"><div class="top">BLU-RAY</div><div class="art a1"></div><div class="shine"></div></div>Movie: Blu-ray case</div>
+    <div class="cv"><div class="obj box"><div class="spine">SEASON 1–3</div><div class="front"><div class="art a2"></div></div></div>Series: season box</div>
+    <div class="cv"><div class="obj anime"><div class="obi">VOL. 2 · BD</div><div class="art a3"></div></div>Anime: BD with obi</div>
+    <div class="cv"><div class="obj ps5"><div class="top"><i></i></div><div class="art a5"></div></div>Game: PS5</div>
+    <div class="cv"><div class="obj switch"><div class="top"></div><div class="art a1"></div></div>Game: Switch</div>
+    <div class="cv"><div class="obj manga"><div class="art a4"></div><div class="vol">12</div><div class="obi">NEW VOLUME</div><div class="pages"></div></div>Manga: tankōbon</div>
+  </div>
+  <div class="covers" style="margin-top:32px;align-items:center">
+    <div class="cv"><div class="obj ticket"><b>Dune: Part Three</b>18 Dec · Cinema release</div>Calendar: ticket</div>
+    <div class="cv"><div class="obj flap"><span>2</span><span>1</span><span>:</span><span>3</span><span>0</span></div>Calendar: split-flap board</div>
+    <div class="cv"><div class="obj led">047</div>Stats: LED scoreboard</div>
+  </div>
+
+  <footer>Concept board · draft for discussion · no real covers or logos used</footer>
+</main>
+</body>
+</html>
