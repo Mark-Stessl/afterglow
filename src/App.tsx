@@ -2,7 +2,11 @@ import { useEffect } from 'react';
 import { ROOMS, roomById } from './rooms';
 import { href, useRoute } from './router';
 import { Building } from './components/Building';
-import { Room } from './views/Room';
+import { Library } from './views/Library';
+import { Detail } from './views/Detail';
+import { TrophyRoom } from './views/TrophyRoom';
+import { Toaster } from './ui/kit';
+import { store } from './data/store';
 import { DataPage } from './views/DataPage';
 
 function TopBar({ active }: { active?: string }) {
@@ -70,14 +74,16 @@ function BottomNav({ active }: { active?: string }) {
 }
 
 export function App() {
-  const [first] = useRoute();
-  const room = first ? roomById(first) : undefined;
+  const [first, second] = useRoute();
+  const isItem = first === 'item' && !!second;
+  const item = isItem ? store.get(second) : undefined;
+  const room = first ? roomById(first) ?? (item ? ROOMS.find(r => r.types.includes(item.type)) : undefined) : undefined;
   const isData = first === 'data';
 
   useEffect(() => {
-    document.title = room ? `${room.name} · Afterglow` : isData ? 'Data · Afterglow' : 'Afterglow';
+    if (!isItem) document.title = room ? `${room.name} · Afterglow` : isData ? 'Data · Afterglow' : 'Afterglow';
     window.scrollTo(0, 0);
-  }, [room, isData]);
+  }, [room, isData, isItem, second]);
 
   return (
     <div className="min-h-dvh">
@@ -85,8 +91,12 @@ export function App() {
       <main>
         {isData ? (
           <DataPage />
+        ) : isItem ? (
+          <Detail id={second} />
+        ) : room?.id === 'trophies' ? (
+          <TrophyRoom room={room} tab={second} />
         ) : room ? (
-          <Room room={room} />
+          <Library key={room.id} room={room} />
         ) : (
           <section className="px-5 pt-8 pb-28 md:flex md:min-h-[calc(100dvh-3.5rem)] md:flex-col md:justify-center md:pb-16">
             <h1 className="sr-only">Afterglow</h1>
@@ -96,6 +106,7 @@ export function App() {
         )}
       </main>
       <BottomNav active={room?.id} />
+      <Toaster />
     </div>
   );
 }

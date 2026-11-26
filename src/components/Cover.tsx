@@ -1,0 +1,149 @@
+/**
+ * Covers that look like the physical thing: Blu-ray case, season box, anime BD with obi,
+ * console cases per platform, manga volume. All cases share one height, so a row lines up like a shelf.
+ */
+import { useState } from 'react';
+import { familyOf } from '../data/constants';
+import type { Item } from '../data/types';
+import { cn } from '../ui/kit';
+
+type Kind = 'bluray' | 'box' | 'obi' | 'ps5' | 'ps4' | 'switch' | 'xbox' | 'pc' | 'case' | 'manga';
+
+/** Width of each case as a share of the slot, so all cases end up the same height. */
+const WIDTH: Record<Kind, number> = { bluray: 1, obi: 1, box: 1, ps5: 1, ps4: 1, xbox: 1, case: 1, pc: 0.96, switch: 0.8, manga: 0.84 };
+/** Width / height of the case. */
+const RATIO: Record<Kind, number> = { bluray: 0.79, obi: 0.79, box: 0.79, ps5: 0.79, ps4: 0.79, xbox: 0.79, case: 0.79, pc: 0.76, switch: 0.632, manga: 0.665 };
+
+export function kindOf(item: Item): Kind {
+  switch (item.type) {
+    case 'movie': return 'bluray';
+    case 'series': return 'box';
+    case 'anime': return 'obi';
+    case 'manga': return 'manga';
+    case 'game': {
+      const p = item.platform || '';
+      if (p === 'PS5') return 'ps5';
+      if (/^PS/.test(p)) return 'ps4';
+      if (/Switch/.test(p)) return 'switch';
+      if (familyOf(p) === 'Xbox') return 'xbox';
+      if (familyOf(p) === 'Steam') return 'pc';
+      return 'case';
+    }
+  }
+}
+
+const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h) % 360; };
+
+/** The cover image, or a quiet title card when there is none or it fails. */
+function Art({ item, className }: { item: Item; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (item.cover && !failed) {
+    return <img src={item.cover} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)} className={cn('absolute inset-0 h-full w-full object-cover', className)} />;
+  }
+  const h = hue(item.title);
+  return (
+    <div className={cn('absolute inset-0 flex items-end p-[9%]', className)}
+      style={{ background: `radial-gradient(120% 80% at 20% 10%, hsl(${h} 45% 34%), hsl(${(h + 40) % 360} 40% 12%) 70%)` }}>
+      <span className="line-clamp-4 font-display text-[clamp(10px,0.9em,15px)] font-semibold leading-tight text-white/90">{item.title}</span>
+    </div>
+  );
+}
+
+const shine = <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_38%,rgba(255,255,255,.10)_47%,transparent_56%)]" />;
+
+function Case({ kind, item }: { kind: Kind; item: Item }) {
+  switch (kind) {
+    case 'bluray':
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[4px_6px_6px_4px] bg-[#0d3fa6] shadow-[inset_4px_0_0_#0a2f7c]">
+          <div className="absolute inset-x-0 top-0 z-10 grid h-[11%] place-items-center bg-gradient-to-b from-[#1a62e8] to-[#1150c9] text-[0.5em] font-bold tracking-[0.25em] text-white">BLU-RAY</div>
+          <div className="absolute bottom-0 left-[4px] right-0 top-[11%] overflow-hidden"><Art item={item} /></div>
+          {shine}
+        </div>
+      );
+    case 'box': {
+      const n = item.seasonList?.filter(s => s.format !== 'MOVIE').length || item.seasons || 1;
+      return (
+        <div className="absolute inset-0 flex overflow-hidden rounded-[3px]">
+          <div className="grid w-[13%] shrink-0 place-items-center bg-[#1c1828] text-[0.5em] font-bold tracking-[0.2em] text-[#cfc6ff] [writing-mode:vertical-rl]">
+            {n > 1 ? `S1–${n}` : 'S1'}
+          </div>
+          <div className="relative flex-1 overflow-hidden"><Art item={item} /></div>
+          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-[13%] w-[6%] bg-gradient-to-r from-black/45 to-transparent" />
+        </div>
+      );
+    }
+    case 'obi':
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[4px]">
+          <Art item={item} />
+          <div className="absolute inset-y-0 left-0 z-10 flex w-[15%] items-center justify-center overflow-hidden bg-[#f4f1ea] py-[6%] text-[0.5em] font-bold tracking-[0.12em] text-[#14121a] [writing-mode:vertical-rl]">
+            <span className="line-clamp-1">{item.title}</span>
+          </div>
+          {shine}
+        </div>
+      );
+    case 'ps5':
+    case 'ps4':
+    case 'xbox': {
+      const band = kind === 'ps5' ? 'bg-[#f4f4f6]' : kind === 'ps4' ? 'bg-[#0a3fa8]' : 'bg-[#107c10]';
+      const mark = kind === 'ps5' ? 'bg-[#111]' : 'bg-white/90';
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[4px]">
+          <div className={cn('absolute inset-x-0 top-0 z-10 flex h-[12%] items-center pl-[7%]', band)}><i className={cn('block h-[32%] w-[16%] rounded-[2px]', mark)} /></div>
+          <div className="absolute inset-x-0 bottom-0 top-[12%] overflow-hidden"><Art item={item} /></div>
+          {shine}
+        </div>
+      );
+    }
+    case 'switch':
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[6px] bg-[#e60012]">
+          <i className="absolute left-[8%] top-[3.5%] block h-[6%] w-[30%] rounded-[3px] bg-white" />
+          <div className="absolute bottom-[4%] left-[6%] right-[6%] top-[13%] overflow-hidden rounded-[2px]"><Art item={item} /></div>
+          {shine}
+        </div>
+      );
+    case 'pc':
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[2px] bg-[#16181d] shadow-[inset_-5px_0_0_#0c0d10]">
+          <div className="absolute inset-y-0 left-0 right-[5px] overflow-hidden"><Art item={item} /></div>
+          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-[5px] bg-gradient-to-l from-black/60 to-white/5" />
+        </div>
+      );
+    case 'manga':
+      return (
+        <div className="absolute inset-0 rounded-[1px_4px_4px_1px] bg-[#efe9dc]">
+          <div className="absolute inset-y-0 left-0 right-[6%] overflow-hidden rounded-[1px_2px_2px_1px]"><Art item={item} /></div>
+          <div aria-hidden="true" className="absolute inset-y-[2%] right-0 w-[6%] rounded-r-[3px] bg-[repeating-linear-gradient(90deg,#efe9dc_0_1px,#cfc6b2_1px_2px)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-[5%] bg-gradient-to-r from-black/35 to-transparent" />
+        </div>
+      );
+    default:
+      return (
+        <div className="absolute inset-0 overflow-hidden rounded-[4px] bg-[#222]">
+          <Art item={item} />
+          {shine}
+        </div>
+      );
+  }
+}
+
+/**
+ * Fills the width of its parent. The slot has the height of a Blu-ray case;
+ * narrower cases (Switch, manga) are centred so the tops line up.
+ */
+export function Cover({ item, className }: { item: Item; className?: string }) {
+  const kind = kindOf(item);
+  const w = WIDTH[kind];
+  return (
+    <div className={cn('relative w-full', className)} style={{ aspectRatio: String(RATIO.bluray) }}>
+      <div
+        className="cover-case absolute bottom-0 left-1/2 -translate-x-1/2 drop-shadow-[0_10px_14px_rgba(0,0,0,.55)]"
+        style={{ width: `${w * 100}%`, aspectRatio: String(RATIO[kind]), fontSize: 'clamp(9px, 1em, 16px)' }}
+      >
+        <Case kind={kind} item={item} />
+      </div>
+    </div>
+  );
+}

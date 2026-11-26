@@ -9,6 +9,7 @@ Personal tracker (games, movies, series, anime, manga, trophies, stats, calendar
 - Data layer in `src/data/` (ported from Nightshelf `src/lib/`): `types` (item model, same field names as Nightshelf), `store` (localStorage `afterglow.v1`, `useStoreVersion()` for React), `items` (seasons, episodes, chapters, releases, +1), `trophies`, `sync`, `psn`, `steam`, `lookup`, `airing`, `covers`, `worker` (shared Cloudflare worker, header `X-Nightshelf-Key`).
 - Afterglow and Nightshelf share the origin `mark-stessl.github.io`, so the Data page can import `nightshelf.v1` straight from this browser's localStorage. Same data format, same worker: sync works across both apps.
 - Not ported yet: background episode/chapter checks (Nightshelf `watch.jsx`), bulk anime list matching (`Lookup.matchAnimeList`), push notifications, PWA service worker.
+- Views in `src/views/`: `Library` (room library, status/platform chips, living room has Series/Anime channels), `Detail` (`#/item/<id>`), `AddSheet` (search → check → add), `Trophies` (trophy list of a game), `TrophyRoom` (`#/trophies`, `/stats`, `/calendar`), `DataPage` + `Connections`. Shared UI in `src/ui/kit.tsx` (buttons, chips, sheet on `<dialog>`, toasts). Covers per type in `src/components/Cover.tsx`.
 - Tests: `npm test` (Vitest) for store, trophies, sync merge and item rules.
 - Icons: `public/icon.svg` is the source; PNGs in `public/icons/` are rendered from it.
 

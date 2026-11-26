@@ -3,6 +3,7 @@ import { ORDER_TYPES, TYPES } from '../data/constants';
 import { readNightshelfLocal, store, useStoreVersion } from '../data/store';
 import { allTrophyStats } from '../data/items';
 import { href } from '../router';
+import { Connections } from './Connections';
 
 type Note = { kind: 'ok' | 'error'; text: string } | null;
 
@@ -109,9 +110,7 @@ export function DataPage() {
           </label>
         </Panel>
 
-        <Panel title="Connections">
-          <p className="m-0">Sync between devices, PlayStation, Steam and the movie key (TMDB) are ready underneath and get their settings next.</p>
-        </Panel>
+        <Connections />
       </div>
     </section>
   );

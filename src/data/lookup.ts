@@ -205,7 +205,7 @@ async function searchAnime(q: string): Promise<Hit[]> {
   return (d?.Page?.media || []).map((m: J) => ({
     source: 'anilist', id: m.id, title: m.title?.english || m.title?.romaji, year: m.startDate?.year || null,
     cover: m.coverImage?.extraLarge || '', thumb: m.coverImage?.large || '', raw: m,
-    sub: [m.startDate?.year, FORMAT[m.format] || m.format, m.episodes ? `${m.episodes} episodes` : '', m.title?.english && m.title?.romaji !== m.title.english ? m.title.romaji : ''].filter(Boolean).join(' · '),
+    sub: [m.startDate?.year, FORMAT[m.format] || m.format, m.episodes ? `${m.episodes} episode${m.episodes === 1 ? '' : 's'}` : '', m.title?.english && m.title?.romaji !== m.title.english ? m.title.romaji : ''].filter(Boolean).join(' · '),
   }));
 }
 export async function animeByIds(ids: number[]) {
