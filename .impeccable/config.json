@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "docs/concept-board.html"
+        ],
+        "createdAt": "2026-11-26T23:21:13.865Z",
+        "reason": "agent: only remaining glow is the LED scoreboard mockup, illustrating lit LEDs"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/concept-board.html"
+        ],
+        "createdAt": "2026-11-26T23:21:14.033Z",
+        "reason": "agent: flagged divs are colour swatches with inset hex chips, not text containers"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          "docs/concept-board.html"
+        ],
+        "createdAt": "2026-11-26T23:21:14.198Z",
+        "reason": "agent: micro text is printed packaging on miniature cover mockups (BLU-RAY band, obi, volume number)"
+      }
+    ]
+  }
+}

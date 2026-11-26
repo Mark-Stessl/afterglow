@@ -93,7 +93,32 @@ Nightshelf already removed: the start intro (slow loading), 3D "shelf worlds" as
 
 ---
 
-## 5. Tech
+## 5. Colours: "Late Show"
+
+Neutral ink black so the real covers stand out, warm cinema amber as the main accent. Each room adds its own light colour.
+
+| Role | Colour |
+|---|---|
+| Background | `#0A0A0F` |
+| Surface | `#14141C` |
+| Border | `#262633` |
+| Text | `#ECEAF2` |
+| Accent (amber) | `#F5B544` |
+| Danger (velvet red) | `#E5484D` |
+
+| Room light | Colour |
+|---|---|
+| Cinema | `#F5B544` |
+| Game room | `#5B8CFF` |
+| Living room | `#A77BFF` |
+| Reading nook | `#FFD66B` |
+| Trophy room | `#5EEAD4` |
+
+Fonts: Space Grotesk for headings, Inter for text (as in Nightshelf).
+
+---
+
+## 6. Tech
 
 - **Vite + React + TypeScript** (TypeScript this time: the data model is big enough that it will catch real mistakes).
 - **3D:** three.js via **react-three-fiber** + **drei** (camera controls, environment light, text). Models: built from primitives / modelled in Blender by us, exported as compressed `.glb` (Draco/KTX2). No downloaded console models with logos.
@@ -104,7 +129,7 @@ Nightshelf already removed: the start intro (slow loading), 3D "shelf worlds" as
 
 ---
 
-## 6. Build order
+## 7. Build order
 
 1. **Setup:** repo, Vite/TS/Tailwind, Pages deploy, design tokens, icon.
 2. **Data layer:** port Nightshelf logic, backup import, tests for the store.
