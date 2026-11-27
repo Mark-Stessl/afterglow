@@ -52,7 +52,8 @@ function medalTexture(item: Item, onUpdate: () => void) {
         onUpdate();
       } catch { /* keep the initials */ }
     };
-    img.src = item.cover;
+    // a separate URL: the page's own <img> copies are cached without CORS and would taint the canvas
+    img.src = item.cover.startsWith('data:') ? item.cover : item.cover + (item.cover.includes('?') ? '&' : '?') + 'cors=1';
   }
   return tex;
 }
