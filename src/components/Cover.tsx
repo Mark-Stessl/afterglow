@@ -1,22 +1,23 @@
 /**
- * Covers that look like the physical thing: Blu-ray case, season box, anime BD with obi,
- * console cases per platform, manga volume. All cases share one height, so a row lines up like a shelf.
+ * Covers: movies are plain posters; the others look like the physical thing (season box, anime BD
+ * with obi, console cases per platform, manga volume). The whole cover image always shows: it is
+ * fitted inside, and a blurred copy fills any space around it. Cases share one height, so a row lines up.
  */
 import { useState } from 'react';
 import { familyOf } from '../data/constants';
 import type { Item } from '../data/types';
 import { cn } from '../ui/kit';
 
-type Kind = 'bluray' | 'box' | 'obi' | 'ps5' | 'ps4' | 'switch' | 'xbox' | 'pc' | 'case' | 'manga';
+type Kind = 'poster' | 'box' | 'obi' | 'ps5' | 'ps4' | 'switch' | 'xbox' | 'pc' | 'case' | 'manga';
 
 /** Width of each case as a share of the slot, so all cases end up the same height. */
-const WIDTH: Record<Kind, number> = { bluray: 1, obi: 1, box: 1, ps5: 1, ps4: 1, xbox: 1, case: 1, pc: 0.96, switch: 0.8, manga: 0.84 };
+const WIDTH: Record<Kind, number> = { poster: 1, obi: 1, box: 1, ps5: 1, ps4: 1, xbox: 1, case: 1, pc: 0.96, switch: 0.8, manga: 0.84 };
 /** Width / height of the case. */
-const RATIO: Record<Kind, number> = { bluray: 0.79, obi: 0.79, box: 0.79, ps5: 0.79, ps4: 0.79, xbox: 0.79, case: 0.79, pc: 0.76, switch: 0.632, manga: 0.665 };
+const RATIO: Record<Kind, number> = { poster: 2 / 3, obi: 0.79, box: 0.79, ps5: 0.79, ps4: 0.79, xbox: 0.79, case: 0.79, pc: 0.76, switch: 0.632, manga: 0.665 };
 
 export function kindOf(item: Item): Kind {
   switch (item.type) {
-    case 'movie': return 'bluray';
+    case 'movie': return 'poster';
     case 'series': return 'box';
     case 'anime': return 'obi';
     case 'manga': return 'manga';
@@ -34,11 +35,18 @@ export function kindOf(item: Item): Kind {
 
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h) % 360; };
 
-/** The cover image, or a quiet title card when there is none or it fails. */
+/** The whole cover image (a blurred copy fills the rest), or a quiet title card when there is none or it fails. */
 function Art({ item, className }: { item: Item; className?: string }) {
   const [failed, setFailed] = useState(false);
   if (item.cover && !failed) {
-    return <img src={item.cover} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)} className={cn('absolute inset-0 h-full w-full object-cover', className)} />;
+    return (
+      <div className={cn('absolute inset-0 overflow-hidden bg-black', className)}>
+        <img src={item.cover} alt="" aria-hidden="true" loading="lazy" decoding="async" draggable={false}
+          className="absolute inset-0 h-full w-full scale-125 object-cover opacity-55 blur-lg" />
+        <img src={item.cover} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)}
+          className="absolute inset-0 h-full w-full object-contain" />
+      </div>
+    );
   }
   const h = hue(item.title);
   return (
@@ -53,11 +61,10 @@ const shine = <div aria-hidden="true" className="pointer-events-none absolute in
 
 function Case({ kind, item }: { kind: Kind; item: Item }) {
   switch (kind) {
-    case 'bluray':
+    case 'poster':
       return (
-        <div className="absolute inset-0 overflow-hidden rounded-[4px_6px_6px_4px] bg-[#0d3fa6] shadow-[inset_4px_0_0_#0a2f7c]">
-          <div className="absolute inset-x-0 top-0 z-10 grid h-[11%] place-items-center bg-gradient-to-b from-[#1a62e8] to-[#1150c9] text-[0.5em] font-bold tracking-[0.25em] text-white">BLU-RAY</div>
-          <div className="absolute bottom-0 left-[4px] right-0 top-[11%] overflow-hidden"><Art item={item} /></div>
+        <div className="absolute inset-0 overflow-hidden rounded-[5px] bg-black">
+          <Art item={item} />
           {shine}
         </div>
       );
@@ -76,7 +83,7 @@ function Case({ kind, item }: { kind: Kind; item: Item }) {
     case 'obi':
       return (
         <div className="absolute inset-0 overflow-hidden rounded-[4px]">
-          <Art item={item} />
+          <div className="absolute inset-y-0 left-[15%] right-0 overflow-hidden"><Art item={item} /></div>
           <div className="absolute inset-y-0 left-0 z-10 flex w-[15%] items-center justify-center overflow-hidden bg-[#f4f1ea] py-[6%] text-[0.5em] font-bold tracking-[0.12em] text-[#14121a] [writing-mode:vertical-rl]">
             <span className="line-clamp-1">{item.title}</span>
           </div>
@@ -130,14 +137,14 @@ function Case({ kind, item }: { kind: Kind; item: Item }) {
 }
 
 /**
- * Fills the width of its parent. The slot has the height of a Blu-ray case;
- * narrower cases (Switch, manga) are centred so the tops line up.
+ * Fills the width of its parent. Movie posters fill a 2:3 slot; the other slots have the height
+ * of a standard case, and narrower cases (Switch, manga) are centred so the tops line up.
  */
 export function Cover({ item, className }: { item: Item; className?: string }) {
   const kind = kindOf(item);
   const w = WIDTH[kind];
   return (
-    <div className={cn('relative w-full', className)} style={{ aspectRatio: String(RATIO.bluray) }}>
+    <div className={cn('relative w-full', className)} style={{ aspectRatio: String(kind === 'poster' ? RATIO.poster : RATIO.ps5) }}>
       <div
         className="cover-case absolute bottom-0 left-1/2 -translate-x-1/2 drop-shadow-[0_10px_14px_rgba(0,0,0,.55)]"
         style={{ width: `${w * 100}%`, aspectRatio: String(RATIO[kind]), fontSize: 'clamp(9px, 1em, 16px)' }}

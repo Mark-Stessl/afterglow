@@ -6,10 +6,12 @@
  *   your place on the right, the ribbon and the sticky note.
  */
 import { useEffect, useState } from 'react';
-import { mangaBehind, showsNew } from '../data/items';
+import { STATUS } from '../data/constants';
+import { mangaBehind, showsNew, statusLabel } from '../data/items';
 import type { Item } from '../data/types';
 import { href } from '../router';
 import { cn } from '../ui/kit';
+import { STATUS_DOT } from './ItemCard';
 
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h) % 360; };
 /** Reading progress 0–1, or null when the total is unknown. */
@@ -24,14 +26,14 @@ function Spine({ item }: { item: Item }) {
   // a little variety in width and height, the same every time for the same title
   const w = 30 + (h % 4) * 4;
   const tall = 88 + (h % 3) * 6;
-  const label = `${item.title}${read ? `, chapter ${read}` : ''}${item.chapters ? ` of ${Math.floor(item.chapters)}` : ''}${fresh ? `, ${fresh} new` : ''}`;
+  const label = `${item.title}, ${statusLabel(item)}${read ? `, chapter ${read}` : ''}${item.chapters ? ` of ${Math.floor(item.chapters)}` : ''}${fresh ? `, ${fresh} new` : ''}`;
   return (
     <a href={href('item', item.id)} aria-label={label} title={item.title}
       className="spine group relative flex h-full shrink-0 items-end no-underline" style={{ width: w }}>
       <span className="relative flex w-full flex-col items-center overflow-hidden rounded-[2px_2px_1px_1px] shadow-[inset_2px_0_0_rgba(255,255,255,.12),inset_-3px_0_0_rgba(0,0,0,.25),0_0_0_1px_rgba(0,0,0,.35)] transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
         style={{ height: `${tall}%`, background: `linear-gradient(90deg, hsl(${h} 38% 30%), hsl(${h} 42% 38%) 45%, hsl(${h} 38% 28%))` }}>
-        {/* publisher band at the top, the obi band at the bottom */}
-        <span className="mt-[6%] block h-[3px] w-[60%] rounded-full bg-[#f2ead8]/70" />
+        {/* status dot at the top, the obi band at the bottom */}
+        <span aria-hidden="true" className={cn('mt-[7%] block h-2 w-2 shrink-0 rounded-full shadow-[0_0_0_1.5px_#f2ead8]', STATUS_DOT[item.status])} />
         <span className="mt-[8%] line-clamp-1 min-h-0 flex-1 px-0.5 font-display text-[12px] font-semibold leading-none tracking-wide text-[#f6efe0] [writing-mode:vertical-rl]">{item.title}</span>
         {/* bookmark ribbon down the spine, as long as your progress */}
         {share != null && share > 0 && (
@@ -58,6 +60,12 @@ export function Shelf({ items }: { items: Item[] }) {
       <ul className="shelf-rows relative m-0 flex list-none flex-wrap items-end gap-x-[3px] p-0 px-2 pb-[var(--plank)]">
         {items.map(it => <li key={it.id} className="h-[var(--row)] pt-3"><Spine item={it} /></li>)}
       </ul>
+      {/* what the dots on the spines mean */}
+      <p className="relative m-0 flex flex-wrap gap-x-4 gap-y-1 px-2 py-2.5 text-[12px] text-[#d8c9b0]">
+        {Object.entries(STATUS.manga).filter(([k]) => items.some(i => i.status === k)).map(([k, l]) => (
+          <span key={k} className="inline-flex items-center gap-1.5"><i aria-hidden="true" className={cn('block h-2 w-2 rounded-full', STATUS_DOT[k as Item['status']])} />{l}</span>
+        ))}
+      </p>
     </div>
   );
 }

@@ -14,7 +14,7 @@ export const STATUS: Record<ItemType, Partial<Record<Status, string>>> = {
   series: { active: 'Watching', done: 'Finished', planned: 'Watchlist', dropped: 'Dropped' },
   anime: { active: 'Watching', done: 'Finished', paused: 'Paused', planned: 'Watchlist', dropped: 'Dropped' },
   manga: { active: 'Reading', done: 'Finished', paused: 'Paused', planned: 'Reading list', dropped: 'Dropped' },
-  movie: { done: 'Watched', planned: 'Watchlist', dropped: 'Dropped' },
+  movie: { active: 'Watching', done: 'Watched', planned: 'Watchlist', dropped: 'Dropped' },
 };
 
 /** Platforms grouped by maker, for pickers and filters. */

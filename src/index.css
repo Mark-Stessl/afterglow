@@ -11,6 +11,13 @@
   --color-amber: #F5B544;
   --color-danger: #E5484D;
 
+  /* status badges on covers */
+  --color-status-active: #F5B544;
+  --color-status-done: #4ADE80;
+  --color-status-paused: #7DD3FC;
+  --color-status-planned: #9A97AD;
+  --color-status-dropped: #E5484D;
+
   --color-room-cinema: #F5B544;
   --color-room-games: #5B8CFF;
   --color-room-living: #A77BFF;

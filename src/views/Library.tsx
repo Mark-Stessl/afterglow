@@ -179,7 +179,7 @@ export function Library({ room }: { room: Room }) {
       ) : room.id === 'reading' && (s.view || 'shelf') === 'shelf' ? (
         <Shelf items={list} />
       ) : (
-        <ul className="m-0 mt-6 grid list-none grid-cols-[repeat(auto-fill,minmax(118px,1fr))] gap-x-4 gap-y-6 p-0 sm:grid-cols-[repeat(auto-fill,minmax(148px,1fr))] sm:gap-x-6">
+        <ul className="m-0 mt-6 grid list-none grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-x-4 gap-y-6 p-0 sm:grid-cols-[repeat(auto-fill,minmax(184px,1fr))] sm:gap-x-6">
           {list.map(it => <li key={it.id} className="min-w-0"><ItemCard item={it} light={room.light} /></li>)}
         </ul>
       )}

@@ -2,6 +2,7 @@ import { currentSeason, hoursOf, mediaProgress, newCount, releaseInfo, showsNew,
 import { progress } from '../data/trophies';
 import type { Item } from '../data/types';
 import { href } from '../router';
+import { cn } from '../ui/kit';
 import { Cover } from './Cover';
 
 const fmtShort = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -24,6 +25,22 @@ export function itemLine(it: Item): string {
   return statusLabel(it);
 }
 
+export const STATUS_DOT: Record<Item['status'], string> = {
+  active: 'bg-status-active', done: 'bg-status-done', paused: 'bg-status-paused', planned: 'bg-status-planned', dropped: 'bg-status-dropped',
+};
+
+/** Status at a glance, on the cover's top-left corner. */
+export function StatusBadge({ item }: { item: Item }) {
+  const label = statusLabel(item);
+  if (!label) return null;
+  return (
+    <span className="absolute left-1.5 top-1.5 z-10 inline-flex max-w-[calc(100%-12px)] items-center gap-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11px] font-semibold text-text shadow-[0_0_0_1px_rgba(255,255,255,.08)] backdrop-blur-sm">
+      <i aria-hidden="true" className={cn('block h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[item.status])} />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
 export function ItemCard({ item, light }: { item: Item; light: string }) {
   const n = showsNew(item) ? newCount(item) : 0;
   const prog = item.status === 'active' ? mediaProgress(item) : null;
@@ -31,6 +48,7 @@ export function ItemCard({ item, light }: { item: Item; light: string }) {
     <a href={href('item', item.id)} className="item-card group block min-w-0 rounded-lg text-text no-underline">
       <div className="relative transition-transform duration-200 ease-[var(--ease-out-quint)] group-hover:-translate-y-1">
         <Cover item={item} />
+        <StatusBadge item={item} />
         {n > 0 && (
           <span className="absolute -right-1.5 -top-1.5 z-10 rounded-full bg-amber px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#1a1206]">
             +{n > 99 ? '99' : n}
