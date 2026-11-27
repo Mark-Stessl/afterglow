@@ -10,7 +10,8 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { modelUrl, Surface } from '../models';
 import { B, Cy, D, Down, H, Led, Many, Pic, Shell, Sp, type V3 } from '../parts';
 import { DEPTH } from '../scene';
-import { poster, rng, screenScene } from '../textures';
+import { poster, screenScene } from '../textures';
+import { PopcornCart } from './popcorn';
 
 const WARM = '#ffcf8a';
 
@@ -188,14 +189,6 @@ export function Cinema({ w }: { w: number }) {
 
   const posters = useMemo(() => [0, 1, 2, 3, 4, 5].map(i => poster(20 + i)), []);
   const film = useMemo(() => screenScene(), []);
-  // popcorn piled in the glass case
-  const popcorn = useMemo(() => {
-    const r = rng(9);
-    return Array.from({ length: 70 }, () => {
-      const s = 0.035 + r() * 0.02;
-      return { p: [(r() - 0.5) * 0.42, 0.93 + r() * r() * 0.26, (r() - 0.5) * 0.32] as V3, s: [s, s * 0.85, s] as V3 };
-    });
-  }, []);
 
   return (
     <group>
@@ -265,22 +258,7 @@ export function Cinema({ w }: { w: number }) {
       }))}
 
       {/* popcorn cart, front right */}
-      <group position={[w / 2 - 0.45, 0, 2.15]}>
-        <B p={[0, 0.45, 0]} s={[0.55, 0.7, 0.45]} c="#8e1a1a" r={0.5} />
-        {[-0.22, 0.22].map(x => <Cy key={x} p={[x, 0.09, 0.24]} rt={0.09} rb={0.09} h={0.04} rot={[0, 0, Math.PI / 2]} c="#222" />)}
-        <B p={[0, 0.86, 0]} s={[0.55, 0.1, 0.45]} c="#5d1010" />
-        {/* glass case with warm light and popcorn inside */}
-        <mesh position={[0, 1.18, 0]}>
-          <boxGeometry args={[0.5, 0.55, 0.4]} />
-          <meshStandardMaterial color="#fff2d0" emissive="#ffb347" emissiveIntensity={0.18} transparent opacity={0.22} roughness={0.05} depthWrite={false} />
-        </mesh>
-        <Many items={popcorn} c="#fff0c8" r={0.9} geo={<icosahedronGeometry args={[1, 1]} />} />
-        <Cy p={[0, 1.36, 0]} rt={0.07} rb={0.05} h={0.08} c="#c9ccd2" m={0.9} r={0.25} />
-        <pointLight position={[0, 1.38, 0]} color="#ffcf7a" intensity={1.6} distance={1.6} decay={2} />
-        {[-1, 1].map(x => [-1, 1].map(z => <B key={`${x}${z}`} p={[x * 0.25, 1.18, z * 0.2]} s={[0.025, 0.55, 0.025]} c="#9a1c1c" r={0.4} />))}
-        <B p={[0, 1.5, 0]} s={[0.6, 0.1, 0.48]} c="#9a1c1c" r={0.4} />
-        <Cy p={[0, 1.62, 0]} rt={0.12} rb={0.26} h={0.16} c="#a51f1f" r={0.4} />
-      </group>
+      <PopcornCart p={[w / 2 - 0.45, 0, 2.15]} />
 
       {/* downlights */}
       {[-1.2, 0, 1.2].map(x => [-0.4, 1.0].map(z => <Down key={`${x}${z}`} x={x * (w / 5.1)} z={z} k={1.2} />))}
