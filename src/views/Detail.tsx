@@ -131,6 +131,72 @@ function Playtime({ item }: { item: Item }) {
   );
 }
 
+/** Shrink a picked image to a small JPEG data URL, so it fits in localStorage and sync. */
+function shrinkImage(file: File, max = 480): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const r = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * r);
+      c.height = Math.round(img.height * r);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
+    img.src = url;
+  });
+}
+
+/** Set the cover by hand: an image link, or a picture from this device. Marked custom so automatic cover searches leave it alone. */
+function CoverEditor({ item }: { item: Item }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const [preview, setPreview] = useState('');
+  const missing = !item.cover;
+  const save = (cover: string) => {
+    store.update(item.id, { cover, coverCustom: !!cover });
+    setOpen(false);
+    toast(cover ? 'Cover saved' : 'Cover removed');
+  };
+  return (
+    <>
+      <button type="button" className={cn(missing ? btn.primary : btn.secondary, btn.small)}
+        onClick={() => { setUrl(item.cover && !item.cover.startsWith('data:') ? item.cover : ''); setPreview(item.cover || ''); setOpen(true); }}>
+        {missing ? 'Add cover' : 'Change cover'}
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={missing ? 'Add a cover' : 'Change the cover'}>
+        <div className="grid gap-5 sm:grid-cols-[140px_1fr]">
+          <div className="mx-auto w-32 sm:w-full">
+            {preview
+              ? <img src={preview} alt="New cover" className="aspect-[2/3] w-full rounded-md border border-line object-cover" onError={() => setPreview('')} />
+              : <div className="grid aspect-[2/3] w-full place-items-center rounded-md border border-dashed border-line px-3 text-center text-[13px] text-muted">No cover yet</div>}
+          </div>
+          <div className="flex flex-col gap-4">
+            <label className="block"><span className="text-xs text-muted">Image link</span>
+              <input data-autofocus inputMode="url" value={url} placeholder="https://…" className={cn(input, 'mt-1')}
+                onChange={e => { setUrl(e.target.value); setPreview(e.target.value.trim()); }} /></label>
+            <label className={cn(btn.secondary, 'cursor-pointer')}>
+              Choose a picture
+              <input type="file" accept="image/*" className="sr-only" onChange={async e => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                try { const d = await shrinkImage(f); setPreview(d); setUrl(''); } catch { toast('That picture could not be read'); }
+              }} />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={btn.primary} disabled={!preview} onClick={() => save(preview)}>Save cover</button>
+              {!missing && <button type="button" className={btn.ghost} onClick={() => save('')}>Remove</button>}
+            </div>
+          </div>
+        </div>
+      </Sheet>
+    </>
+  );
+}
+
 export function Detail({ id }: { id: string }) {
   useStoreVersion();
   const item = store.get(id);
@@ -196,6 +262,7 @@ export function Detail({ id }: { id: string }) {
                 +1 {plus.toLowerCase()}
               </button>
             )}
+            <CoverEditor item={item} />
           </div>
           {item.type === 'game' && <Playtime item={item} />}
         </div>

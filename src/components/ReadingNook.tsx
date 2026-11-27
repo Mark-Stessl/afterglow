@@ -18,6 +18,20 @@ const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charC
 export const readShare = (m: Item) => (m.chapters ? Math.min(1, (m.chaptersRead || 0) / m.chapters) : null);
 const RIBBON = '#c8323f';
 
+/** The cover art on the spine: a strip of the cover, darkened towards the middle so the title stays readable. */
+function SpineArt({ item }: { item: Item }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [item.cover]);
+  if (!item.cover || failed) return null;
+  return (
+    <span aria-hidden="true" className="pointer-events-none absolute inset-0">
+      <img src={item.cover} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)}
+        className="absolute inset-0 h-full w-full object-cover" />
+      <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.3)_45%,rgba(0,0,0,.6))]" />
+    </span>
+  );
+}
+
 function Spine({ item }: { item: Item }) {
   const h = hue(item.title);
   const read = Math.floor(item.chaptersRead || 0);
@@ -32,9 +46,10 @@ function Spine({ item }: { item: Item }) {
       className={cn('spine group relative flex h-full shrink-0 items-end no-underline', item.status === 'dropped' && 'opacity-60 grayscale')} style={{ width: w }}>
       <span className="relative flex w-full flex-col items-center overflow-hidden rounded-[2px_2px_1px_1px] shadow-[inset_2px_0_0_rgba(255,255,255,.12),inset_-3px_0_0_rgba(0,0,0,.25),0_0_0_1px_rgba(0,0,0,.35)] transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
         style={{ height: `${tall}%`, background: `linear-gradient(90deg, hsl(${h} 38% 30%), hsl(${h} 42% 38%) 45%, hsl(${h} 38% 28%))` }}>
+        <SpineArt item={item} />
         {/* status dot at the top, the obi band at the bottom */}
-        <span aria-hidden="true" className={cn('mt-[7%] block h-2 w-2 shrink-0 rounded-full shadow-[0_0_0_1.5px_#f2ead8]', STATUS_DOT[item.status])} />
-        <span className="mt-[8%] line-clamp-1 min-h-0 flex-1 px-0.5 font-display text-[12px] font-semibold leading-none tracking-wide text-[#f6efe0] [writing-mode:vertical-rl]">{item.title}</span>
+        <span aria-hidden="true" className={cn('relative mt-[7%] block h-2 w-2 shrink-0 rounded-full shadow-[0_0_0_1.5px_#f2ead8]', STATUS_DOT[item.status])} />
+        <span className="relative mt-[8%] line-clamp-1 min-h-0 flex-1 px-0.5 font-display [text-shadow:0_1px_3px_rgba(0,0,0,.9)] text-[12px] font-semibold leading-none tracking-wide text-[#f6efe0] [writing-mode:vertical-rl]">{item.title}</span>
         {/* bookmark ribbon down the spine, as long as your progress */}
         {share != null && share > 0 && (
           <span aria-hidden="true" className="ribbon absolute right-[12%] top-0 w-[4px]" style={{ height: `${Math.max(8, share * 100)}%`, background: RIBBON }} />

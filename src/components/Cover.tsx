@@ -1,9 +1,8 @@
 /**
  * Covers: movies are plain posters; the others look like the physical thing (season box, anime BD
- * with obi, console cases per platform, manga volume). The whole cover image always shows: it is
- * fitted inside, and a blurred copy fills any space around it. Cases share one height, so a row lines up.
+ * with obi, console cases per platform, manga volume). The cover image fills its case. Cases share one height, so a row lines up.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { familyOf } from '../data/constants';
 import type { Item } from '../data/types';
 import { cn } from '../ui/kit';
@@ -36,16 +35,15 @@ export function kindOf(item: Item): Kind {
 
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h) % 360; };
 
-/** The whole cover image (a blurred copy fills the rest), or a quiet title card when there is none or it fails. */
+/** The cover image filling the case (cropped at the edges when its shape differs), or a quiet title card when there is none or it fails. */
 function Art({ item, className }: { item: Item; className?: string }) {
   const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [item.cover]);
   if (item.cover && !failed) {
     return (
       <div className={cn('absolute inset-0 overflow-hidden bg-black', className)}>
-        <img src={item.cover} alt="" aria-hidden="true" loading="lazy" decoding="async" draggable={false}
-          className="absolute inset-0 h-full w-full scale-125 object-cover opacity-55 blur-lg" />
         <img src={item.cover} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)}
-          className="absolute inset-0 h-full w-full object-contain" />
+          className="absolute inset-0 h-full w-full object-cover" />
       </div>
     );
   }
@@ -118,7 +116,7 @@ function Case({ kind, item }: { kind: Kind; item: Item }) {
     case 'ps4':
     case 'xbox': {
       // blue (green for Xbox) plastic case around the insert, platform band across the top
-      const rim = kind === 'xbox' ? '#0e7a0d' : '#1d5fd8';
+      const rim = kind === 'xbox' ? '#0e7a0d' : kind === 'ps5' ? '#e4e6ec' : '#1d5fd8';
       const band = kind === 'ps5' ? 'bg-[#f6f6f8] text-[#111]'
         : kind === 'ps4' ? 'bg-[linear-gradient(90deg,#0b3a8c,#0a5fc2_55%,#0a8ee6)] text-white'
         : 'bg-[#107c10] text-white';
