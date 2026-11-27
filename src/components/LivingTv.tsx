@@ -60,8 +60,32 @@ function useZap(key: string) {
   return zap;
 }
 
-export function Tv({ item, type, className, link }: { item?: Item | null; type: ItemType; className?: string; link?: boolean }) {
+/** Sideways swipe on the TV (phones and mouse): next or previous channel. Vertical swipes still scroll. */
+function useChannelSwipe(onSwipe?: (dir: 1 | -1) => void) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
+  if (!onSwipe) return {};
+  return {
+    onPointerDown: (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY }; swiped.current = false; },
+    onPointerUp: (e: React.PointerEvent) => {
+      const s = start.current;
+      start.current = null;
+      if (!s) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { swiped.current = true; onSwipe(dx < 0 ? 1 : -1); }
+    },
+    onPointerCancel: () => { start.current = null; },
+    // the link and cover would otherwise start a native drag and cancel the swipe
+    onDragStart: (e: React.DragEvent) => e.preventDefault(),
+    // a swipe is not a tap on the screen's link
+    onClickCapture: (e: React.MouseEvent) => { if (swiped.current) { e.preventDefault(); e.stopPropagation(); swiped.current = false; } },
+    style: { touchAction: 'pan-y' } as React.CSSProperties,
+  };
+}
+
+export function Tv({ item, type, className, link, onSwipe }: { item?: Item | null; type: ItemType; className?: string; link?: boolean; onSwipe?: (dir: 1 | -1) => void }) {
   const zap = useZap(`${type}:${item?.id || ''}`);
+  const swipe = useChannelSwipe(onSwipe);
   const n = item && showsNew(item) ? newCount(item) : 0;
   const ch = CHANNEL[type] || 1;
   const tag = item ? episodeTag(item) : '';
@@ -92,7 +116,7 @@ export function Tv({ item, type, className, link }: { item?: Item | null; type: 
   );
 
   return (
-    <div className={cn('tv relative', className)} data-zap={zap || undefined}>
+    <div className={cn('tv relative', className)} data-zap={zap || undefined} {...swipe}>
       {/* the screen's light on the wall */}
       <div aria-hidden="true" className="pointer-events-none absolute -inset-[8%] rounded-[30%] bg-room-living opacity-[0.16] blur-3xl" />
       <div className="relative rounded-[6px] bg-[#0c0c0f] p-[1.2%] shadow-[0_0_0_1px_#2a2a31,0_18px_40px_-12px_rgba(0,0,0,.8)]">
@@ -137,7 +161,8 @@ export function LivingRoom({ types, type, onType, items, newBy }: {
   const pick = items.filter(i => i.status !== 'dropped').sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))[0] || null;
   return (
     <LivingScene>
-      <Tv item={pick} type={type} link className="mx-auto w-[86%] max-w-[460px] sm:w-[52%]" />
+      <Tv item={pick} type={type} link className="mx-auto w-[86%] max-w-[460px] select-none sm:w-[52%]"
+        onSwipe={dir => { const i = types.indexOf(type) + dir; if (i >= 0 && i < types.length) onType(types[i]); }} />
       <Sideboard />
       <div className="relative -mx-4 mt-0 bg-[linear-gradient(180deg,#4a3b2f,#2c2219)] px-4 pt-4 pb-5 sm:-mx-8">
         <Remote types={types} type={type} onType={onType} newBy={newBy} />

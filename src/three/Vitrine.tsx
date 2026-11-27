@@ -186,7 +186,7 @@ export default function Vitrine({ cups, onPick, onReady }: { cups: Cup[]; onPick
         <Cabinet rows={rows} />
         {cups.map((cup, i) => <TrophyCup key={cup.item.id} cup={cup} pos={place(i)} onPick={onPick} />)}
       </group>
-      <OrbitControls makeDefault target={[0, cy, 0]} enablePan={false} enableZoom={false} enableDamping dampingFactor={0.12}
+      <OrbitControls makeDefault target={[0, cy, 0]} enablePan={false} enableZoom={false} enableDamping={!matchMedia("(prefers-reduced-motion: reduce)").matches} dampingFactor={0.12}
         minAzimuthAngle={-0.55} maxAzimuthAngle={0.55} minPolarAngle={Math.PI / 2 - 0.35} maxPolarAngle={Math.PI / 2 + 0.12} />
       <PanY />
       <EffectComposer multisampling={4}>

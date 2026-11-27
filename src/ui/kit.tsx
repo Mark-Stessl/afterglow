@@ -30,9 +30,44 @@ export function Chip({ on, onClick, children, count }: { on: boolean; onClick: (
   );
 }
 
+/**
+ * Drag a bottom sheet down by its top bar to close it (phones only). It follows the finger;
+ * past 110 px or a quick flick it closes, otherwise it springs back.
+ */
+function useSwipeDown(ref: React.RefObject<HTMLDialogElement | null>, onClose: () => void) {
+  const drag = useRef<{ y: number; t: number; dy: number } | null>(null);
+  const set = (dy: number, animate: boolean) => {
+    const d = ref.current;
+    if (!d) return;
+    d.style.transition = animate ? 'transform 220ms var(--ease-out-quint)' : 'none';
+    d.style.transform = dy ? `translateY(${dy}px)` : '';
+  };
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (!matchMedia('(max-width: 767px)').matches || (e.target as Element).closest('button')) return;
+      drag.current = { y: e.clientY, t: performance.now(), dy: 0 };
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const g = drag.current;
+      if (!g) return;
+      g.dy = Math.max(0, e.clientY - g.y);
+      set(g.dy, false);
+    },
+    onPointerUp: () => {
+      const g = drag.current;
+      drag.current = null;
+      if (!g) return;
+      const v = g.dy / Math.max(1, performance.now() - g.t);
+      if (g.dy > 110 || (g.dy > 30 && v > 0.6)) { set(0, false); onClose(); } else set(0, true);
+    },
+  };
+}
+
 /** Modal sheet: bottom sheet on phones, centred dialog on larger screens. */
 export function Sheet({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const swipe = useSwipeDown(ref, onClose);
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -57,7 +92,10 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
     >
       {open && (
         <div className="flex max-h-[88dvh] flex-col">
-          <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
+          <header {...swipe} onPointerCancel={swipe.onPointerUp}
+            className="relative flex items-center justify-between gap-3 border-b border-line px-5 py-3 max-md:touch-none max-md:pt-5">
+            {/* grab handle (phones) */}
+            <span aria-hidden="true" className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-line md:hidden" />
             <h2 className="m-0 text-lg font-semibold">{title}</h2>
             <button type="button" onClick={onClose} className={cn(btn.ghost, 'min-h-10 w-10 px-0')} aria-label="Close">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
