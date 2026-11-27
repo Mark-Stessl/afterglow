@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { STATUS, TYPES } from '../data/constants';
 import {
-  epTotal, hoursOf, materialize, parseHours, plusOne, plusOneLabel, released, releaseInfo, saveManga, saveSeasons, seasonDone, seasonsOf,
+  currentSeason, epTotal, hoursOf, materialize, parseHours, plusOne, plusOneLabel, released, releaseInfo, saveManga, saveSeasons, seasonDone, seasonsOf,
 } from '../data/items';
 import { store, useStoreVersion } from '../data/store';
 import type { Item, Season, Status } from '../data/types';
 import { CinemaScreen } from '../components/CinemaScreen';
 import { Cover } from '../components/Cover';
 import { GameStage } from '../components/GameRoom';
+import { LivingScene, Sideboard, Tv } from '../components/LivingTv';
 import { ROOMS } from '../rooms';
 import { href } from '../router';
 import { Chip, Sheet, Stars, btn, cn, input, toast } from '../ui/kit';
@@ -33,25 +34,38 @@ function Seasons({ item, light }: { item: Item; light: string }) {
     Object.assign(next[i], patch);
     saveSeasons(item, next);
   };
+  // the season you are on is "On now" in the guide
+  const now = list.every(seasonDone) ? null : currentSeason(item)?.id;
+  const shows = list.filter(x => x.format !== 'MOVIE');
+  const movies = list.filter(x => x.format === 'MOVIE');
   return (
     <section className="mt-10">
-      <h2 className="m-0 text-xl font-semibold">{item.type === 'anime' ? 'Seasons and movies' : 'Seasons'}</h2>
-      <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="m-0 text-xl font-semibold">TV guide</h2>
+        <span className="text-[13px] text-muted">{item.type === 'anime' ? 'Seasons and movies' : 'Seasons'}</span>
+      </div>
+      <ul className="m-0 mt-3 list-none overflow-hidden rounded-xl border border-line bg-surface p-0">
         {list.map((x, i) => {
           const done = seasonDone(x);
           const max = epTotal(x);
           const out = released(x);
           const behind = x.aired != null && max && out < max ? `${out} out` : '';
+          const on = x.id === now;
+          const slot = x.format === 'MOVIE' ? `M${movies.length > 1 ? movies.indexOf(x) + 1 : ''}` : `S${shows.indexOf(x) + 1}`;
           return (
-            <li key={x.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-surface px-4 py-3">
+            <li key={x.id} className={cn('grid grid-cols-[3.25rem_1fr] border-t border-line first:border-t-0 sm:grid-cols-[4rem_1fr]', on && 'bg-raised')}>
+              <div className="flex items-center justify-center border-r border-line font-display text-lg font-semibold tabular-nums"
+                style={{ color: on || done ? light : 'var(--color-muted)', boxShadow: on ? `inset 3px 0 0 ${light}` : undefined }}>{slot}</div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
               <div className="min-w-0 flex-1 basis-44">
                 <div className="flex items-center gap-2 font-semibold">
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: done ? light : 'var(--color-line)' }} aria-hidden="true" />
                   {x.label}
+                  {on && <span className="rounded px-1.5 py-0.5 text-[11px] font-semibold text-ink" style={{ background: light }}>On now</span>}
+                  {done && <span className="sr-only">(seen)</span>}
                   {x.airing === 'RELEASING' && <span className="rounded bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted">Airing</span>}
                 </div>
                 {(x.title && x.title !== item.title) || x.year || behind ? (
-                  <div className="truncate pl-4 text-[13px] text-muted">{[x.title !== item.title ? x.title : '', x.year, behind].filter(Boolean).join(' · ')}</div>
+                  <div className="truncate text-[13px] text-muted">{[x.title !== item.title ? x.title : '', x.year, behind].filter(Boolean).join(' · ')}</div>
                 ) : null}
               </div>
               {x.format === 'MOVIE' || (!max && item.type === 'series' && !item.seasonList?.length) ? (
@@ -59,6 +73,7 @@ function Seasons({ item, light }: { item: Item; light: string }) {
               ) : (
                 <Stepper label={`${x.label} episodes`} value={x.seen || 0} max={max} onChange={n => edit(i, { seen: n, complete: !!max && n >= max })} />
               )}
+            </div>
             </li>
           );
         })}
@@ -151,9 +166,16 @@ export function Detail({ id }: { id: string }) {
 
       {item.type === 'movie' && <CinemaScreen key={item.id} item={item} className="mt-4" />}
       {item.type === 'game' && <GameStage key={item.id} item={item} className="mt-4" />}
+      {(item.type === 'series' || item.type === 'anime') && (
+        <LivingScene className="mt-4">
+          <Tv key={item.id} item={item} type={item.type} className="mx-auto w-full max-w-[560px] sm:w-[66%]" />
+          <Sideboard />
+          <div aria-hidden="true" className="-mx-4 h-5 bg-[linear-gradient(180deg,#4a3b2f,#2c2219)] sm:-mx-8" />
+        </LivingScene>
+      )}
 
       <header className="mt-4 grid gap-6 sm:grid-cols-[200px_1fr] sm:gap-8">
-        <div className={cn('mx-auto w-44 sm:mx-0 sm:w-full', (item.type === 'movie' || item.type === 'game') && 'max-sm:hidden')}><Cover item={item} /></div>
+        <div className={cn('mx-auto w-44 sm:mx-0 sm:w-full', item.type !== 'manga' && 'max-sm:hidden')}><Cover item={item} /></div>
         <div className="min-w-0">
           <h1 className="m-0 text-3xl font-bold leading-tight text-balance sm:text-4xl">{item.title}</h1>
           <p className="m-0 mt-2 text-muted">{meta.join(' · ')}</p>

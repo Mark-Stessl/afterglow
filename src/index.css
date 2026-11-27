@@ -120,7 +120,18 @@
 .gstage[data-on] .g-screen { animation: g-wake 1000ms ease-out 800ms both; }
 @keyframes g-wake { 0% { opacity: 0; filter: brightness(3) saturate(0) } 18% { opacity: .8 } 30% { opacity: .2 } 100% { opacity: 1; filter: none } }
 
+/* ---------- Living room TV (src/components/LivingTv.tsx) ---------- */
+.tv-static { opacity: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 2.2 -0.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%23222' /%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size: 160px; }
+.tv[data-zap] .tv-static { animation: tv-zap 480ms ease-in both, tv-noise 90ms steps(3) infinite; }
+.tv[data-zap] .tv-pic { animation: tv-in 480ms var(--ease-out-quint) both; }
+@keyframes tv-zap { 0%, 55% { opacity: 1 } 100% { opacity: 0 } }
+@keyframes tv-noise { 0% { transform: translate(0, 0) } 33% { transform: translate(-6%, 5%) } 66% { transform: translate(5%, -4%) } 100% { transform: translate(0, 0) } }
+@keyframes tv-in { 0%, 45% { transform: scaleY(.94); filter: brightness(1.8) saturate(.3) } 100% { transform: none; filter: none } }
+.tv-led[data-on] { background: #ff5a6e; box-shadow: 0 0 6px 1px rgba(255,90,110,.8); animation: tv-blink 1.6s steps(1, end) infinite; }
+@keyframes tv-blink { 0%, 60% { opacity: 1 } 61%, 100% { opacity: .25 } }
+
 @media (prefers-reduced-motion: reduce) {
+  .tv-led[data-on] { animation: none !important; }
   .g-bob { animation: none !important; }
   .cine-pan, .cine-grain, .cine-flicker { animation: none !important; opacity: 1; }
   .cine-pan { transform: translate3d(0, -20%, 0); }

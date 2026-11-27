@@ -5,6 +5,7 @@ import { store, useStoreVersion } from '../data/store';
 import { progress } from '../data/trophies';
 import type { Item, ItemType, Status } from '../data/types';
 import { CinemaScreen } from '../components/CinemaScreen';
+import { LivingRoom } from '../components/LivingTv';
 import { CONSOLE_KEYS, ConsoleBoard, consoleOf, type ConsoleKey } from '../components/GameRoom';
 import { ItemCard } from '../components/ItemCard';
 import { RoomArt } from '../components/RoomArt';
@@ -103,7 +104,12 @@ export function Library({ room }: { room: Room }) {
       {room.id === 'cinema' && <NowShowing items={items} />}
       {room.id === 'games' && <ConsoleBoard items={items} value={consoleKey} onPick={k => set({ family: k })} />}
 
-      {room.types.length > 1 && (
+      {room.id === 'living' && (
+        <LivingRoom types={room.types} type={type} items={items} onType={t => set({ type: t, status: 'all' })}
+          newBy={Object.fromEntries(room.types.map(t => [t, store.all(t).filter(showsNew).reduce((a, i) => a + newCount(i), 0)]))} />
+      )}
+
+      {room.types.length > 1 && room.id !== 'living' && (
         <div role="tablist" aria-label="Channel" className="mt-6 inline-flex rounded-xl border border-line bg-surface p-1">
           {room.types.map(t => (
             <button key={t} type="button" role="tab" aria-selected={t === type}
