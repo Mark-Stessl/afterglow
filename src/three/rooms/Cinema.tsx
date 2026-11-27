@@ -90,7 +90,7 @@ function Fabrics({ w }: { w: number }) {
 /** A rectangular ring (four bars) with LED strips on its inner edge. */
 function Ring({ z, w, h, ow, oh, depth = 0.25 }: { z: number; w: number; h: number; ow: number; oh: number; depth?: number }) {
   const side = (ow - w) / 2, top = oh - h;
-  const c = '#24221f';
+  const c = '#181614';
   return (
     <group position={[0, 0, z]}>
       <B p={[-(w / 2 + side / 2), oh / 2, 0]} s={[side, oh, depth]} c={c} r={0.9} />
@@ -99,7 +99,58 @@ function Ring({ z, w, h, ow, oh, depth = 0.25 }: { z: number; w: number; h: numb
       <Led p={[-w / 2 + 0.012, h / 2, depth / 2 - 0.02]} s={[0.025, h, 0.025]} color={WARM} />
       <Led p={[w / 2 - 0.012, h / 2, depth / 2 - 0.02]} s={[0.025, h, 0.025]} color={WARM} />
       <Led p={[0, h - 0.012, depth / 2 - 0.02]} s={[w, 0.025, 0.025]} color={WARM} />
+      {/* the strips' light washing over the frame faces: soft additive gradients fading away from each strip */}
+      <Spill p={[-w / 2 - 0.2, h / 2, depth / 2 + 0.003]} size={[0.4, h]} dir="left" />
+      <Spill p={[w / 2 + 0.2, h / 2, depth / 2 + 0.003]} size={[0.4, h]} dir="right" />
+      <Spill p={[0, h + 0.2, depth / 2 + 0.003]} size={[w + 0.4, 0.4]} dir="up" />
+      {/* and into the recess: the inner side faces of the frame catch the light too */}
+      <Spill p={[-w / 2 + 0.002, h / 2, 0]} size={[depth, h]} rot={[0, Math.PI / 2, 0]} dir="right" strength={0.12} />
+      <Spill p={[w / 2 - 0.002, h / 2, 0]} size={[depth, h]} rot={[0, -Math.PI / 2, 0]} dir="left" strength={0.12} />
     </group>
+  );
+}
+
+/** The film: a real evening landscape (crop of Poly Haven's CC0 panorama "hilly_terrain_01"). */
+function FilmFrame() {
+  const tex = useTexture(modelUrl('cinema/film.webp'));
+  useMemo(() => { tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; }, [tex]);
+  return <meshBasicMaterial map={tex} color="#e8e2d8" toneMapped={false} />;
+}
+
+/** One gradient (bright at one edge, gone at the other), shared by every spill. */
+const spillTex = (() => {
+  let tex: THREE.CanvasTexture | null = null;
+  return () => {
+    if (tex) return tex;
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 4;
+    const g = c.getContext('2d')!;
+    const grad = g.createLinearGradient(0, 0, 128, 0);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.06, 'rgba(255,255,255,.45)');
+    grad.addColorStop(0.3, 'rgba(255,255,255,.08)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 128, 4);
+    tex = new THREE.CanvasTexture(c);
+    return tex;
+  };
+})();
+
+/** Warm light from an LED strip falling on a nearby surface. `dir` is the direction it fades towards. */
+function Spill({ p, size, rot, dir, strength = 0.07 }: { p: V3; size: [number, number]; rot?: V3; dir: 'left' | 'right' | 'up'; strength?: number }) {
+  const map = useMemo(() => {
+    const t = spillTex().clone();
+    t.center.set(0.5, 0.5);
+    // the gradient runs bright → dark along +u; turn it to fade the way asked
+    t.rotation = dir === 'left' ? Math.PI : dir === 'right' ? 0 : -Math.PI / 2;
+    t.needsUpdate = true;
+    return t;
+  }, [dir]);
+  return (
+    <mesh position={p} rotation={rot}>
+      <planeGeometry args={size} />
+      <meshBasicMaterial map={map} color={WARM} transparent opacity={strength} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+    </mesh>
   );
 }
 
@@ -159,7 +210,7 @@ export function Cinema({ w }: { w: number }) {
       <B p={[0, 2.2, -D / 2 + 0.04]} s={[3.36, 1.82, 0.04]} c="#0b0b0b" />
       <mesh position={[0, 2.2, -D / 2 + 0.07]}>
         <planeGeometry args={[3.2, 1.66]} />
-        <meshBasicMaterial map={film} toneMapped={false} />
+        <Suspense fallback={<meshBasicMaterial map={film} toneMapped={false} />}><FilmFrame /></Suspense>
       </mesh>
       {/* wall speakers on the front pillars, as in the reference */}
       {[-1, 1].map(s => (
@@ -232,9 +283,9 @@ export function Cinema({ w }: { w: number }) {
       </group>
 
       {/* downlights */}
-      {[-1.2, 0, 1.2].map(x => [-0.4, 1.0].map(z => <Down key={`${x}${z}`} x={x * (w / 5.1)} z={z} k={2} />))}
+      {[-1.2, 0, 1.2].map(x => [-0.4, 1.0].map(z => <Down key={`${x}${z}`} x={x * (w / 5.1)} z={z} k={1.2} />))}
 
-      <pointLight position={[0, H - 0.6, 0.8]} color="#ffd9a8" intensity={16} distance={9} decay={1.5} />
+      <pointLight position={[0, H - 0.6, 0.8]} color="#ffd9a8" intensity={6} distance={9} decay={1.5} />
       <pointLight position={[0, 2.3, -D / 2 + 1.2]} color="#f4efe6" intensity={5} distance={6} decay={1.8} />
     </group>
   );

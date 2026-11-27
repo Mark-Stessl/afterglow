@@ -6,7 +6,7 @@
  */
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
-import { Bloom, EffectComposer, ToneMapping } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import * as THREE from 'three';
@@ -145,8 +145,11 @@ export default function Gallery({ nav, onReady, onActive, onPick }: {
       <Rig nav={nav} onActive={onActive} />
       {ROOMS.map((_, i) => <Room key={i} i={i} nav={nav} onPick={onPick} />)}
       <EffectComposer multisampling={4}>
+        {/* soft contact shadows in corners, under seats and furniture (half resolution, fast enough for phones) */}
+        <N8AO halfRes quality="performance" aoRadius={0.55} distanceFalloff={0.6} intensity={2.6} color="#000000" />
         <Bloom mipmapBlur luminanceThreshold={0.95} luminanceSmoothing={0.2} intensity={0.85} radius={0.72} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+        <Vignette offset={0.32} darkness={0.5} />
       </EffectComposer>
     </Canvas>
   );
