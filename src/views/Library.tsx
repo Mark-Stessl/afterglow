@@ -12,7 +12,8 @@ import { ItemCard } from '../components/ItemCard';
 import { RoomArt } from '../components/RoomArt';
 import type { Room } from '../rooms';
 import { href } from '../router';
-import { Chip, Plus, SearchIcon, btn, cn, input } from '../ui/kit';
+import { checkNow } from '../news';
+import { BusyButton, Chip, Plus, SearchIcon, btn, cn, input } from '../ui/kit';
 import { AddSheet } from './AddSheet';
 
 type Sort = 'added' | 'title' | 'rating' | 'progress' | 'playtime';
@@ -149,6 +150,11 @@ export function Library({ room }: { room: Room }) {
                 {[...SORTS, ...(type === 'game' ? GAME_SORTS : [])].map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </select>
             </label>
+            {(type === 'anime' || type === 'series' || type === 'manga') && (
+              <BusyButton onClick={checkNow} className={btn.secondary} busy="Checking…">
+                Check for new {type === 'manga' ? 'chapters' : 'episodes'}
+              </BusyButton>
+            )}
           </div>
           <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
             <Chip on={s.status === 'all'} onClick={() => set({ status: 'all' })} count={items.length}>All</Chip>

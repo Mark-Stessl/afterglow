@@ -106,6 +106,9 @@ export interface Item {
   showStatus?: string;
   anilistId?: number;
   newEpisodeAt?: string | null;
+  airCheckedAt?: string | null;
+  /** AniList or TVmaze ids of seasons the user deleted: the background check must not add them back. */
+  removedSeasons?: number[];
 
   /* manga */
   chapters?: number | null;

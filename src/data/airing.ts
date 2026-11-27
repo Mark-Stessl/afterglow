@@ -6,7 +6,7 @@ import { anilist } from './lookup';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type J = any;
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const alDate = (d: J) => d?.year && d?.month && d?.day ? `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}` : null;
 const iso = (sec: number) => new Date(sec * 1000).toISOString();
 

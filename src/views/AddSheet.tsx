@@ -6,6 +6,7 @@ import { queueCover } from '../data/covers';
 import type { Item, ItemType, NewItem, Status } from '../data/types';
 import { Cover } from '../components/Cover';
 import { href } from '../router';
+import { checkNewItem } from '../news';
 import { Chip, SearchIcon, Sheet, btn, cn, input, toast } from '../ui/kit';
 
 type Draft = NewItem & { platforms?: string[] };
@@ -71,6 +72,7 @@ export function AddSheet({ open, type, onClose }: { open: boolean; type: ItemTyp
     const { platforms: _p, ...data } = draft;
     const it = store.add(data as Item);
     if (it.type === 'game') queueCover(it.id);
+    if (it.type === 'anime' || it.type === 'series') checkNewItem(it.id);
     onClose();
     toast(`${it.title} added`, TYPES[it.type].label);
     location.hash = href('item', it.id);
