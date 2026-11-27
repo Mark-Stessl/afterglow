@@ -205,4 +205,47 @@ export const jersey = (seed: number) => make(`jersey${seed}`, 160, 200, (g, w, h
 });
 
 /** Book spines for instanced shelves: one strip of many colours, sampled per book. */
-export const BOOK_COLORS = ['#5a1d18', '#2f3a24', '#6b4a24', '#1d2a3c', '#7a5a30', '#3c1a1a', '#4a3b2a', '#20302a', '#8a6a3a', '#2a2018', '#5c4630', '#3a2c4a'];
+/** The film on the cinema screen: a painted evening sky with soft clouds, a wooded hill with a castle on the right. */
+export const screenScene = () => make('screenScene', 768, 400, (g, w, h) => {
+  const r = rng(77);
+  const sky = g.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#4f79b8'); sky.addColorStop(0.55, '#9db6d6'); sky.addColorStop(1, '#c9c6d4');
+  g.fillStyle = sky; g.fillRect(0, 0, w, h);
+  // clouds: clusters of soft puffs, warm light from the lower right
+  const puff = (x: number, y: number, rad: number) => {
+    const c = g.createRadialGradient(x - rad * 0.2, y - rad * 0.3, rad * 0.1, x, y, rad);
+    c.addColorStop(0, 'rgba(255,246,232,.95)'); c.addColorStop(0.6, 'rgba(244,214,190,.75)'); c.addColorStop(1, 'rgba(200,190,210,0)');
+    g.fillStyle = c; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+  };
+  [[80, 230, 1.2], [200, 150, 1], [120, 330, 1.4], [330, 300, 0.9], [60, 90, 0.7]].forEach(([cx, cy, k]) => {
+    for (let i = 0; i < 14; i++) puff(cx + (r() - 0.5) * 170 * k, cy + (r() - 0.5) * 60 * k, (18 + r() * 28) * k);
+  });
+  // the hill, dark at the foot, trees as layered blobs
+  g.fillStyle = '#1c2e1c';
+  g.beginPath(); g.moveTo(w * 0.42, h); g.bezierCurveTo(w * 0.55, h * 0.75, w * 0.68, h * 0.36, w * 0.8, h * 0.32); g.lineTo(w, h * 0.3); g.lineTo(w, h); g.fill();
+  // canopy: many small overlapping leaf clumps, lighter near the top, softened a little
+  g.filter = 'blur(1.2px)';
+  for (let i = 0; i < 900; i++) {
+    const x = w * (0.45 + r() * 0.55), top = h * (0.32 + Math.max(0, (0.8 - (x / w)) * 1.2));
+    const y = top + Math.pow(r(), 0.7) * (h - top);
+    const lit = 1 - (y - top) / (h - top + 1);
+    g.fillStyle = `hsl(${100 + r() * 25} ${28 + r() * 14}% ${12 + lit * 22 + r() * 8}%)`;
+    g.beginPath(); g.arc(x, y, 3 + r() * 7, 0, Math.PI * 2); g.fill();
+  }
+  g.filter = 'none';
+  // a few dark pines on the left slope
+  for (let i = 0; i < 9; i++) {
+    const x = w * (0.5 + r() * 0.12), y = h * (0.62 + r() * 0.3), s = 18 + r() * 22;
+    g.fillStyle = '#1f3524'; g.beginPath(); g.moveTo(x, y - s * 1.6); g.lineTo(x - s * 0.5, y); g.lineTo(x + s * 0.5, y); g.fill();
+  }
+  // the castle on the hilltop, lit by the evening sun
+  const cx = w * 0.74, cy = h * 0.3;
+  g.fillStyle = '#d9a86a'; g.fillRect(cx - 50, cy - 26, 100, 30); g.fillRect(cx - 12, cy - 48, 30, 26);
+  g.fillStyle = '#6b4a3a';
+  g.beginPath(); g.moveTo(cx - 56, cy - 24); g.lineTo(cx, cy - 44); g.lineTo(cx + 56, cy - 24); g.fill();
+  g.beginPath(); g.moveTo(cx - 16, cy - 46); g.lineTo(cx + 3, cy - 64); g.lineTo(cx + 22, cy - 46); g.fill();
+  g.fillStyle = '#ffe2a8';
+  for (let i = 0; i < 7; i++) g.fillRect(cx - 42 + i * 13, cy - 14, 5, 7);
+});
+
+export const BOOK_COLORS =['#5a1d18', '#2f3a24', '#6b4a24', '#1d2a3c', '#7a5a30', '#3c1a1a', '#4a3b2a', '#20302a', '#8a6a3a', '#2a2018', '#5c4630', '#3a2c4a'];
