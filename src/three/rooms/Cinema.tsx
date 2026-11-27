@@ -7,6 +7,7 @@ import { useTexture } from '@react-three/drei';
 import { Suspense, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { Spill } from '../glow';
 import { modelUrl, Surface } from '../models';
 import { B, Cy, D, Down, H, Led, Many, Pic, Shell, Sp, type V3 } from '../parts';
 import { DEPTH } from '../scene';
@@ -101,12 +102,12 @@ function Ring({ z, w, h, ow, oh, depth = 0.25 }: { z: number; w: number; h: numb
       <Led p={[w / 2 - 0.012, h / 2, depth / 2 - 0.02]} s={[0.025, h, 0.025]} color={WARM} />
       <Led p={[0, h - 0.012, depth / 2 - 0.02]} s={[w, 0.025, 0.025]} color={WARM} />
       {/* the strips' light washing over the frame faces: soft additive gradients fading away from each strip */}
-      <Spill p={[-w / 2 - 0.2, h / 2, depth / 2 + 0.003]} size={[0.4, h]} dir="left" />
-      <Spill p={[w / 2 + 0.2, h / 2, depth / 2 + 0.003]} size={[0.4, h]} dir="right" />
-      <Spill p={[0, h + 0.2, depth / 2 + 0.003]} size={[w + 0.4, 0.4]} dir="up" />
+      <Spill p={[-w / 2 - 0.2, h / 2, depth / 2 + 0.003]} size={[0.4, h]} dir="left" strength={0.07} color={WARM} />
+      <Spill p={[w / 2 + 0.2, h / 2, depth / 2 + 0.003]} size={[0.4, h]} dir="right" strength={0.07} color={WARM} />
+      <Spill p={[0, h + 0.2, depth / 2 + 0.003]} size={[w + 0.4, 0.4]} dir="up" strength={0.07} color={WARM} />
       {/* and into the recess: the inner side faces of the frame catch the light too */}
-      <Spill p={[-w / 2 + 0.002, h / 2, 0]} size={[depth, h]} rot={[0, Math.PI / 2, 0]} dir="right" strength={0.12} />
-      <Spill p={[w / 2 - 0.002, h / 2, 0]} size={[depth, h]} rot={[0, -Math.PI / 2, 0]} dir="left" strength={0.12} />
+      <Spill p={[-w / 2 + 0.002, h / 2, 0]} size={[depth, h]} rot={[0, Math.PI / 2, 0]} dir="right" strength={0.12} color={WARM} />
+      <Spill p={[w / 2 - 0.002, h / 2, 0]} size={[depth, h]} rot={[0, -Math.PI / 2, 0]} dir="left" strength={0.12} color={WARM} />
     </group>
   );
 }
@@ -118,42 +119,6 @@ function FilmFrame() {
   return <meshBasicMaterial map={tex} color="#e8e2d8" toneMapped={false} />;
 }
 
-/** One gradient (bright at one edge, gone at the other), shared by every spill. */
-const spillTex = (() => {
-  let tex: THREE.CanvasTexture | null = null;
-  return () => {
-    if (tex) return tex;
-    const c = document.createElement('canvas');
-    c.width = 128; c.height = 4;
-    const g = c.getContext('2d')!;
-    const grad = g.createLinearGradient(0, 0, 128, 0);
-    grad.addColorStop(0, 'rgba(255,255,255,1)');
-    grad.addColorStop(0.06, 'rgba(255,255,255,.45)');
-    grad.addColorStop(0.3, 'rgba(255,255,255,.08)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = grad; g.fillRect(0, 0, 128, 4);
-    tex = new THREE.CanvasTexture(c);
-    return tex;
-  };
-})();
-
-/** Warm light from an LED strip falling on a nearby surface. `dir` is the direction it fades towards. */
-function Spill({ p, size, rot, dir, strength = 0.07 }: { p: V3; size: [number, number]; rot?: V3; dir: 'left' | 'right' | 'up'; strength?: number }) {
-  const map = useMemo(() => {
-    const t = spillTex().clone();
-    t.center.set(0.5, 0.5);
-    // the gradient runs bright → dark along +u; turn it to fade the way asked
-    t.rotation = dir === 'left' ? Math.PI : dir === 'right' ? 0 : -Math.PI / 2;
-    t.needsUpdate = true;
-    return t;
-  }, [dir]);
-  return (
-    <mesh position={p} rotation={rot}>
-      <planeGeometry args={size} />
-      <meshBasicMaterial map={map} color={WARM} transparent opacity={strength} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
-    </mesh>
-  );
-}
 
 export function Cinema({ w }: { w: number }) {
   const rows = [
