@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ROOMS, roomById } from './rooms';
 import { href, useRoute } from './router';
-import { Building } from './components/Building';
+import { Overview } from './components/Overview';
 import { Library } from './views/Library';
 import { Detail } from './views/Detail';
 import { TrophyRoom } from './views/TrophyRoom';
@@ -100,8 +100,8 @@ export function App() {
         ) : (
           <section className="px-5 pt-8 pb-28 md:flex md:min-h-[calc(100dvh-3.5rem)] md:flex-col md:justify-center md:pb-16">
             <h1 className="sr-only">Afterglow</h1>
-            <Building />
-            <p className="m-0 mt-6 text-center text-xs text-muted">Build {__BUILD__}</p>
+            <Overview />
+            <p className="m-0 mt-2 text-center text-xs text-muted">Build {__BUILD__}</p>
           </section>
         )}
       </main>
