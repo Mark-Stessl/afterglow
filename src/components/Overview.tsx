@@ -17,7 +17,8 @@ const PREF = 'afterglow.view';
 const LAST = ROOMS.length - 1;
 const clamp = (n: number) => Math.max(0, Math.min(LAST, n));
 
-function canDo3D() {
+/** WebGL, no data saver, not a very weak device, and the user has not chosen the flat view. */
+export function canDo3D() {
   try {
     if (localStorage.getItem(PREF) === 'flat') return false;
     const nav = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };

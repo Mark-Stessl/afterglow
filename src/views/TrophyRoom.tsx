@@ -1,10 +1,15 @@
-/** The trophy room: display case (trophies), scoreboard (stats), departures (calendar). Flat for now. */
+/**
+ * The trophy room: display case (trophies, 3D when the device can), LED scoreboard (stats),
+ * split-flap departure board (calendar). Everything also works without the 3D.
+ */
+import { lazy, Suspense, useState } from 'react';
 import { ORDER_TYPES, TYPES } from '../data/constants';
-import { allTrophyStats, hoursOf, newCount, newItems, recentTrophies, upcomingEntries, upcomingText, type CalendarEntry } from '../data/items';
+import { allTrophyStats, hoursOf, newCount, newItems, recentTrophies, seasonsOf, upcomingEntries, upcomingText, type CalendarEntry } from '../data/items';
 import { store, useStoreVersion } from '../data/store';
 import { TIERS, TIER_ORDER, progress } from '../data/trophies';
 import type { Item } from '../data/types';
 import { Cover } from '../components/Cover';
+import { canDo3D } from '../components/Overview';
 import { RoomArt } from '../components/RoomArt';
 import type { Room } from '../rooms';
 import { href } from '../router';
@@ -14,6 +19,54 @@ import { TrophyCup } from './Trophies';
 type Tab = 'trophies' | 'stats' | 'calendar';
 const TABS: [Tab, string][] = [['trophies', 'Display case'], ['stats', 'Scoreboard'], ['calendar', 'Departures']];
 const fmt = (n: number) => n.toLocaleString('en');
+const Vitrine = lazy(() => import('../three/Vitrine'));
+
+/** The glass case in 3D. Nothing shows when the device cannot do 3D: the panels below carry everything. */
+function CaseStage({ games }: { games: Item[] }) {
+  const [want] = useState(canDo3D);
+  const [ready, setReady] = useState(false);
+  if (!want) return null;
+  return (
+    <section aria-label="Display case" className="relative overflow-hidden rounded-xl border border-line bg-[radial-gradient(70%_80%_at_50%_35%,#2a2018,#120d09_70%,#0a0806)]">
+      <div aria-hidden="true" className="absolute inset-x-[20%] top-0 h-[2px] bg-[#bff5ec] opacity-70 shadow-[0_0_30px_8px_rgba(94,234,212,.25)]" />
+      <div className={cn('h-[min(92vw,58vh,520px)] min-h-[280px] cursor-grab transition-opacity duration-700 active:cursor-grabbing', ready ? 'opacity-100' : 'opacity-0')}>
+        <Suspense fallback={null}>
+          <Vitrine cups={games.map(item => ({ item }))} onReady={() => setReady(true)} onPick={id => { location.hash = href('item', id); }} />
+        </Suspense>
+      </div>
+      <p className="pointer-events-none absolute inset-x-0 bottom-3 m-0 px-4 text-center text-[13px] text-muted">
+        {games.length ? `${games.length} platinum · drag to look, click a cup for its trophies` : 'No platinum yet. The case is waiting.'}
+      </p>
+    </section>
+  );
+}
+
+/** Split-flap characters that flip in one after another. */
+function Flap({ text, width, className }: { text: string; width: number; className?: string }) {
+  return (
+    <span aria-hidden="true" className={cn('inline-flex gap-[2px]', className)}>
+      {[...text.toUpperCase().slice(0, width).padEnd(width)].map((c, i) => (
+        <span key={i} className="flap" style={{ animationDelay: `${i * 45}ms` }}>{c === ' ' ? '\u00a0' : c}</span>
+      ))}
+    </span>
+  );
+}
+const KIND: Record<string, string> = { ep: 'EP', start: 'START', movie: 'FILM', game: 'GAME' };
+
+/** One LED number with the unlit segments ("888") behind it. */
+function Led({ value, label }: { value: number; label: string }) {
+  const v = fmt(value);
+  const ghost = v.replace(/\d/g, '8').padStart(Math.max(4, v.length), '8');
+  return (
+    <div className="rounded-lg bg-black/50 px-3 py-3 shadow-[inset_0_0_0_1px_#1d1d1a]">
+      <div className="relative text-right font-mono text-3xl font-bold leading-none tabular-nums sm:text-4xl">
+        <span aria-hidden="true" className="text-[#2a120a]">{ghost}</span>
+        <span className="absolute inset-0 text-[#ff6a45] [text-shadow:0_0_10px_rgba(255,106,69,.65)]">{v}</span>
+      </div>
+      <div className="mt-2 text-[11px] uppercase tracking-[0.12em] text-[#a8a29e]">{label}</div>
+    </div>
+  );
+}
 const fmtDay = (t: number) => new Date(t).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
 function Panel({ title, children, className }: { title?: string; children: React.ReactNode; className?: string }) {
@@ -41,6 +94,7 @@ function Display() {
 
   return (
     <div className="grid gap-4">
+      <CaseStage games={plats.map(x => x.g)} />
       <Panel>
         <div className="flex flex-wrap items-center gap-6">
           <div>
@@ -117,23 +171,28 @@ function Score() {
   const all = store.all();
   const year = new Date().getFullYear();
   const done = (i: Item) => i.status === 'done';
-  const episodes = all.reduce((a, i) => a + (i.type === 'anime' || i.type === 'series' ? (i.episodesSeen || 0) : 0), 0);
+  const episodes = all.reduce((a, i) => a + (i.type === 'anime' || i.type === 'series' ? seasonsOf(i).reduce((b, x) => b + (x.seen || 0), 0) : 0), 0);
+  const trophies = allTrophyStats();
   const chapters = all.reduce((a, i) => a + (i.type === 'manga' ? Math.floor(i.chaptersRead || 0) : 0), 0);
   const hours = store.all('game').reduce((a, g) => a + (hoursOf(g) || 0), 0);
   const thisYear = all.filter(i => done(i) && i.finishedAt?.startsWith(String(year))).length;
   const topGames = store.all('game').filter(g => (hoursOf(g) || 0) > 0).sort((a, b) => hoursOf(b)! - hoursOf(a)!).slice(0, 5);
-  const led = 'font-mono text-3xl font-bold tabular-nums text-[#ff6a45] sm:text-4xl';
+  const board: [string, number][] = [
+    ['Trophy level', trophies.level.level], ['Platinum', trophies.counts.platinum], ['Hours played', Math.round(hours)],
+    ['Episodes', episodes], ['Chapters', chapters], [`Finished in ${year}`, thisYear],
+  ];
 
   return (
     <div className="grid gap-4">
-      <div className="grid grid-cols-2 gap-3 rounded-xl border border-[#2a2a2a] bg-[#0b0c0a] p-4 sm:grid-cols-4">
-        {[['Finished in ' + year, thisYear], ['Hours played', Math.round(hours)], ['Episodes', episodes], ['Chapters', chapters]].map(([l, v]) => (
-          <div key={l as string} className="rounded-lg bg-black/40 px-3 py-3">
-            <div className={led}>{fmt(v as number)}</div>
-            <div className="mt-1 text-[12px] uppercase tracking-[0.08em] text-[#a8a29e]">{l}</div>
-          </div>
-        ))}
-      </div>
+      <section aria-label="Scoreboard" className="rounded-xl border border-[#2a2a2a] bg-[#0b0c0a] p-3 shadow-[inset_0_0_40px_rgba(0,0,0,.6)] sm:p-4">
+        <div className="mb-3 flex items-center justify-between px-1">
+          <span className="font-mono text-[12px] font-bold uppercase tracking-[0.3em] text-[#ff6a45] [text-shadow:0_0_8px_rgba(255,106,69,.6)]">Scoreboard</span>
+          <span aria-hidden="true" className="flex gap-1">{[0, 1, 2].map(i => <i key={i} className="block h-1.5 w-1.5 rounded-full bg-[#ff6a45] opacity-70" />)}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+          {board.map(([l, v]) => <Led key={l} label={l} value={v} />)}
+        </div>
+      </section>
       <div className="grid gap-4 md:grid-cols-2">
         <Panel title="By type">
           <table className="w-full border-collapse text-sm">
@@ -164,6 +223,8 @@ function Score() {
   );
 }
 
+const timeOf = (e: CalendarEntry) => new Date(e.t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
 function Departures() {
   const entries = upcomingEntries();
   const fresh = newItems();
@@ -190,7 +251,7 @@ function Departures() {
       )}
       <section className="overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#0d0d10]">
         <div className="flex items-center justify-between border-b border-[#2a2a2a] px-5 py-3">
-          <h2 className="m-0 font-mono text-sm font-bold uppercase tracking-[0.2em] text-amber">Departures</h2>
+          <h2 className="m-0"><span className="sr-only">Departures</span><Flap text="Departures" width={10} className="text-[13px]" /></h2>
           <span className="font-mono text-[12px] text-muted">{entries.length} upcoming</span>
         </div>
         {entries.length ? (
@@ -202,14 +263,14 @@ function Departures() {
                   {list.map((e, i) => (
                     <li key={i} className="border-t border-[#1c1c22]">
                       <a href={href('item', e.it.id)} className="flex items-center gap-4 px-5 py-2.5 text-text no-underline hover:bg-white/[0.03]">
-                        <span className="w-12 shrink-0 font-mono text-sm font-bold tabular-nums text-amber">
-                          {e.dateOnly ? '—' : new Date(e.t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        <span className="shrink-0 text-[13px] sm:text-sm">
+                          <span className="sr-only">{e.dateOnly ? 'All day' : timeOf(e)}</span><Flap text={e.dateOnly ? '--:--' : timeOf(e)} width={5} />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-semibold">{e.it.title}</span>
+                          <span className="block truncate font-mono font-bold uppercase tracking-[0.04em] text-[#f3ead2]">{e.it.title}</span>
                           <span className="block truncate text-[13px] text-muted">{upcomingText(e)}</span>
                         </span>
-                        <span className="hidden shrink-0 font-mono text-[11px] uppercase tracking-[0.1em] text-muted sm:block">{TYPES[e.it.type].label}</span>
+                        <span className="hidden shrink-0 text-[12px] sm:block"><span className="sr-only">{TYPES[e.it.type].label}</span><Flap text={KIND[e.kind] || ''} width={5} /></span>
                       </a>
                     </li>
                   ))}
@@ -243,7 +304,7 @@ export function TrophyRoom({ room, tab = 'trophies' }: { room: Room; tab?: strin
       <nav aria-label="Trophy room" className="mt-6 inline-flex rounded-xl border border-line bg-surface p-1">
         {TABS.map(([k, l]) => (
           <a key={k} href={href(room.id, k)} aria-current={active === k ? 'page' : undefined}
-            className={cn('inline-flex min-h-10 items-center rounded-lg px-4 text-sm font-semibold no-underline transition-colors', active === k ? 'text-ink' : 'text-muted hover:text-text')}
+            className={cn('inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-3 text-sm font-semibold no-underline transition-colors sm:px-4', active === k ? 'text-ink' : 'text-muted hover:text-text')}
             style={active === k ? { background: room.light } : undefined}>
             {l}
           </a>
