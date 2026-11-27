@@ -49,6 +49,11 @@
 }
 .floor:active .window { filter: brightness(1.25); }
 
+/* 3D room carousel (components/Overview.tsx): one big room, neighbours at the sides */
+.gallery { height: min(104vw, calc(100dvh - 17.5rem)); cursor: grab; }
+@media (min-width: 768px) { .gallery { height: min(calc(100dvh - 13rem), 64vw, 920px); } }
+.gallery[data-dragging] { cursor: grabbing; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
 }

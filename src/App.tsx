@@ -98,10 +98,10 @@ export function App() {
         ) : room ? (
           <Library key={room.id} room={room} />
         ) : (
-          <section className="px-5 pt-8 pb-28 md:flex md:min-h-[calc(100dvh-3.5rem)] md:flex-col md:justify-center md:pb-16">
+          <section className="flex min-h-[calc(100dvh-3.5rem)] flex-col justify-center pt-4 pb-24 md:pb-6">
             <h1 className="sr-only">Afterglow</h1>
             <Overview />
-            <p className="m-0 mt-2 text-center text-xs text-muted">Build {__BUILD__}</p>
+            <p className="m-0 mt-1 text-center text-xs text-muted">Build {__BUILD__}</p>
           </section>
         )}
       </main>
