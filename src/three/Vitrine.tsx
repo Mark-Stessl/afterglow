@@ -14,7 +14,6 @@ import type { Item } from '../data/types';
 
 export interface Cup { item: Item }
 
-const COLS = 4;
 const CELL_W = 0.62;
 const SHELF_H = 0.78;
 const PLAT = '#e6f0f2';
@@ -84,7 +83,7 @@ function TrophyCup({ cup, pos, onPick }: { cup: Cup; pos: [number, number, numbe
       {/* black plinth */}
       <mesh position={[0, 0.03, 0]}><boxGeometry args={[0.26, 0.06, 0.26]} /><meshStandardMaterial color="#111" roughness={0.35} /></mesh>
       <mesh geometry={CUP} position={[0, 0.06, 0]}>
-        <meshStandardMaterial color={PLAT} metalness={0.95} roughness={hover ? 0.18 : 0.26} envMapIntensity={1.5} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={PLAT} metalness={0.95} roughness={hover ? 0.18 : 0.26} envMapIntensity={hover ? 2.2 : 1.5} side={THREE.DoubleSide} />
       </mesh>
       {/* handles */}
       {[-1, 1].map(s => (
@@ -101,14 +100,12 @@ function TrophyCup({ cup, pos, onPick }: { cup: Cup; pos: [number, number, numbe
           <meshStandardMaterial map={tex} roughness={0.5} emissive="#ffffff" emissiveMap={tex} emissiveIntensity={0.25} />
         </mesh>
       </group>
-      {/* a soft spot from above */}
-      <spotLight position={[0, 0.7, 0.25]} angle={0.5} penumbra={0.8} intensity={hover ? 2.2 : 1.4} distance={1.4} color="#eefcff" />
     </group>
   );
 }
 
-function Cabinet({ rows }: { rows: number }) {
-  const w = COLS * CELL_W + 0.1, h = rows * SHELF_H + 0.25, d = 0.62;
+function Cabinet({ rows, cols }: { rows: number; cols: number }) {
+  const w = cols * CELL_W + 0.1, h = rows * SHELF_H + 0.25, d = 0.62;
   const glass = useMemo(() => new THREE.MeshStandardMaterial({ color: '#cfe8e4', roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.09, envMapIntensity: 2, depthWrite: false }), []);
   const wood = '#24170e';
   return (
@@ -145,26 +142,40 @@ function PanY() {
   return null;
 }
 
-function Fit({ rows }: { rows: number }) {
+function Fit({ rows, cols }: { rows: number; cols: number }) {
   const { camera, size } = useThree();
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
-    const h = rows * SHELF_H + 0.4, w = COLS * CELL_W + 0.4;
+    const h = rows * SHELF_H + 0.4, w = cols * CELL_W + 0.4;
     const t = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
     const dist = Math.max(h / 2 / t, w / 2 / (t * (size.width / size.height))) * 1.08 + 0.3;
     cam.position.set(0, h / 2, dist);
     cam.updateProjectionMatrix();
-  }, [camera, size, rows]);
+  }, [camera, size, rows, cols]);
   return null;
 }
 
+/** With frameloop="demand" the first frames can be drawn before shaders and the environment map are ready; draw a few more. */
+function Settle() {
+  const invalidate = useThree(s => s.invalidate);
+  useEffect(() => {
+    const ids = [50, 300, 1000, 2500].map(ms => setTimeout(() => invalidate(), ms));
+    return () => ids.forEach(clearTimeout);
+  }, [invalidate]);
+  return null;
+}
+
+/** Shelves get wider as the collection grows, so the case stays about as wide as it is tall. */
+export const columnsFor = (n: number) => Math.min(10, Math.max(4, Math.ceil(Math.sqrt(n * 1.3))));
+
 export default function Vitrine({ cups, onPick, onReady }: { cups: Cup[]; onPick: (id: string) => void; onReady?: () => void }) {
-  const rows = Math.max(2, Math.ceil(cups.length / COLS));
+  const cols = columnsFor(cups.length);
+  const rows = Math.max(2, Math.ceil(cups.length / cols));
   const cy = (rows * SHELF_H + 0.25) / 2;
   const place = (i: number): [number, number, number] => {
-    const r = rows - 1 - Math.floor(i / COLS); // fill from the top shelf down
-    const inRow = Math.min(COLS, cups.length - Math.floor(i / COLS) * COLS);
-    const c = i % COLS;
+    const r = rows - 1 - Math.floor(i / cols); // fill from the top shelf down
+    const inRow = Math.min(cols, cups.length - Math.floor(i / cols) * cols);
+    const c = i % cols;
     return [(c - (inRow - 1) / 2) * CELL_W, r * SHELF_H + 0.01, 0];
   };
 
@@ -172,9 +183,13 @@ export default function Vitrine({ cups, onPick, onReady }: { cups: Cup[]; onPick
     <Canvas frameloop="demand" dpr={[1, 1.75]} gl={{ antialias: false, powerPreference: 'high-performance' }}
       camera={{ fov: 32, near: 0.1, far: 30 }} onCreated={() => onReady?.()}
       style={{ background: 'transparent' }}>
-      <Fit rows={rows} />
+      <Fit rows={rows} cols={cols} />
+      <Settle />
       <ambientLight intensity={0.25} />
       <hemisphereLight args={['#c9e8ff', '#1a120c', 0.5]} />
+      {/* a fixed set of lights however many cups there are: one light per cup broke the shader on big collections */}
+      <spotLight position={[0, rows * SHELF_H + 1.2, 1.8]} angle={0.8} penumbra={0.9} intensity={8} decay={1} color="#eefcff" />
+      <pointLight position={[0, rows * SHELF_H * 0.5, 1.4]} intensity={1.5} decay={1} color="#eefcff" />
       <Environment resolution={128} frames={1} environmentIntensity={1.1}>
         <Lightformer form="rect" intensity={3} color="#ffffff" position={[0, 4, 3]} scale={[6, 1.5, 1]} />
         {/* a big soft panel in front, so the polished cups have something bright to mirror */}
@@ -183,7 +198,7 @@ export default function Vitrine({ cups, onPick, onReady }: { cups: Cup[]; onPick
         <Lightformer form="rect" intensity={1.5} color="#ffd9a0" position={[4, 1, 2]} scale={[2, 5, 1]} />
       </Environment>
       <group position={[0, 0, 0]}>
-        <Cabinet rows={rows} />
+        <Cabinet rows={rows} cols={cols} />
         {cups.map((cup, i) => <TrophyCup key={cup.item.id} cup={cup} pos={place(i)} onPick={onPick} />)}
       </group>
       <OrbitControls makeDefault target={[0, cy, 0]} enablePan={false} enableZoom={false} enableDamping={!matchMedia("(prefers-reduced-motion: reduce)").matches} dampingFactor={0.12}
