@@ -6,6 +6,7 @@ import { progress } from '../data/trophies';
 import type { Item, ItemType, Status } from '../data/types';
 import { CinemaScreen } from '../components/CinemaScreen';
 import { LivingRoom } from '../components/LivingTv';
+import { Shelf } from '../components/ReadingNook';
 import { CONSOLE_KEYS, ConsoleBoard, consoleOf, type ConsoleKey } from '../components/GameRoom';
 import { ItemCard } from '../components/ItemCard';
 import { RoomArt } from '../components/RoomArt';
@@ -15,7 +16,7 @@ import { Chip, Plus, SearchIcon, btn, cn, input } from '../ui/kit';
 import { AddSheet } from './AddSheet';
 
 type Sort = 'added' | 'title' | 'rating' | 'progress' | 'playtime';
-interface LibState { type: ItemType; status: Status | 'all' | 'new'; q: string; sort: Sort; family: string }
+interface LibState { type: ItemType; status: Status | 'all' | 'new'; q: string; sort: Sort; family: string; view?: 'shelf' | 'grid' }
 
 /** Filters survive leaving the room and coming back (until reload). */
 const memory = new Map<string, LibState>();
@@ -130,6 +131,18 @@ export function Library({ room }: { room: Room }) {
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"><SearchIcon /></span>
               <input type="search" value={s.q} onChange={e => set({ q: e.target.value })} placeholder="Search" className={cn(input, 'pl-10')} />
             </label>
+            {room.id === 'reading' && (
+              <div role="group" aria-label="View" className="inline-flex rounded-xl border border-line bg-surface p-1">
+                {([['shelf', 'Shelf'], ['grid', 'Covers']] as const).map(([v, l]) => {
+                  const on = (s.view || 'shelf') === v;
+                  return (
+                    <button key={v} type="button" aria-pressed={on} onClick={() => set({ view: v })}
+                      className={cn('min-h-9 cursor-pointer rounded-lg px-3 text-sm font-semibold transition-colors', on ? 'text-ink' : 'text-muted hover:text-text')}
+                      style={on ? { background: room.light } : undefined}>{l}</button>
+                  );
+                })}
+              </div>
+            )}
             <label className="flex items-center gap-2 text-sm text-muted">
               <span className="sr-only sm:not-sr-only">Sort</span>
               <select value={s.sort} onChange={e => set({ sort: e.target.value as Sort })} className={cn(input, 'w-auto cursor-pointer pr-8')}>
@@ -163,6 +176,8 @@ export function Library({ room }: { room: Room }) {
           Nothing here{s.q ? ` for “${s.q}”` : ''}.{' '}
           <button type="button" className="cursor-pointer text-amber underline-offset-2 hover:underline" onClick={() => set({ q: '', status: 'all', family: 'all' })}>Clear filters</button>
         </p>
+      ) : room.id === 'reading' && (s.view || 'shelf') === 'shelf' ? (
+        <Shelf items={list} />
       ) : (
         <ul className="m-0 mt-6 grid list-none grid-cols-[repeat(auto-fill,minmax(118px,1fr))] gap-x-4 gap-y-6 p-0 sm:grid-cols-[repeat(auto-fill,minmax(148px,1fr))] sm:gap-x-6">
           {list.map(it => <li key={it.id} className="min-w-0"><ItemCard item={it} light={room.light} /></li>)}

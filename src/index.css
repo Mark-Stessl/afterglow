@@ -130,6 +130,25 @@
 .tv-led[data-on] { background: #ff5a6e; box-shadow: 0 0 6px 1px rgba(255,90,110,.8); animation: tv-blink 1.6s steps(1, end) infinite; }
 @keyframes tv-blink { 0%, 60% { opacity: 1 } 61%, 100% { opacity: .25 } }
 
+/* ---------- Reading nook (src/components/ReadingNook.tsx) ---------- */
+.shelf-rows {
+  --row: 158px; --plank: 14px;
+  row-gap: var(--plank);
+  background: repeating-linear-gradient(180deg, transparent 0 var(--row), #6a4428 var(--row), #4a2e1a calc(var(--row) + 3px), #2c1a0e calc(var(--row) + var(--plank)));
+}
+@media (min-width: 640px) { .shelf-rows { --row: 196px; } }
+.ribbon { clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 5px), 0 100%); }
+/* the book tips out of the shelf, then the cover swings open */
+.nook-book { perspective: 1400px; transform: translate(-25%, -38%) rotate(-9deg) scale(.82); opacity: 0;
+  transition: transform 800ms var(--ease-out-quint), opacity 300ms ease; }
+.nook[data-open] .nook-book { transform: none; opacity: 1; }
+.nook-cover { transform-origin: left center; backface-visibility: hidden; transition: transform 1000ms var(--ease-out-quint) 650ms; }
+.nook[data-open] .nook-cover { transform: rotateY(-180deg); }
+.nook-left { opacity: 0; transition: opacity 200ms linear 950ms; }
+.nook[data-open] .nook-left { opacity: 1; }
+.nook-ribbon, .nook-note { opacity: 0; transition: opacity 400ms ease 1500ms; }
+.nook[data-open] .nook-ribbon, .nook[data-open] .nook-note { opacity: 1; }
+
 @media (prefers-reduced-motion: reduce) {
   .tv-led[data-on] { animation: none !important; }
   .g-bob { animation: none !important; }

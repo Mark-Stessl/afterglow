@@ -9,6 +9,7 @@ import { CinemaScreen } from '../components/CinemaScreen';
 import { Cover } from '../components/Cover';
 import { GameStage } from '../components/GameRoom';
 import { LivingScene, Sideboard, Tv } from '../components/LivingTv';
+import { OpenBook } from '../components/ReadingNook';
 import { ROOMS } from '../rooms';
 import { href } from '../router';
 import { Chip, Sheet, Stars, btn, cn, input, toast } from '../ui/kit';
@@ -166,6 +167,7 @@ export function Detail({ id }: { id: string }) {
 
       {item.type === 'movie' && <CinemaScreen key={item.id} item={item} className="mt-4" />}
       {item.type === 'game' && <GameStage key={item.id} item={item} className="mt-4" />}
+      {item.type === 'manga' && <OpenBook key={item.id} item={item} className="mt-4" />}
       {(item.type === 'series' || item.type === 'anime') && (
         <LivingScene className="mt-4">
           <Tv key={item.id} item={item} type={item.type} className="mx-auto w-full max-w-[560px] sm:w-[66%]" />
@@ -175,7 +177,7 @@ export function Detail({ id }: { id: string }) {
       )}
 
       <header className="mt-4 grid gap-6 sm:grid-cols-[200px_1fr] sm:gap-8">
-        <div className={cn('mx-auto w-44 sm:mx-0 sm:w-full', item.type !== 'manga' && 'max-sm:hidden')}><Cover item={item} /></div>
+        <div className="mx-auto w-44 max-sm:hidden sm:mx-0 sm:w-full"><Cover item={item} /></div>
         <div className="min-w-0">
           <h1 className="m-0 text-3xl font-bold leading-tight text-balance sm:text-4xl">{item.title}</h1>
           <p className="m-0 mt-2 text-muted">{meta.join(' · ')}</p>
