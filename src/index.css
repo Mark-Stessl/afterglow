@@ -100,7 +100,28 @@
   animation: cine-grain 700ms steps(3) infinite;
 }
 @keyframes cine-grain { 0% { transform: translate(0, 0) } 33% { transform: translate(-7%, 4%) } 66% { transform: translate(5%, -6%) } 100% { transform: translate(0, 0) } }
+/* ---------- Game room (src/components/GameRoom.tsx) ---------- */
+.gstage .g-led { fill: #34344a; transition: fill 400ms ease 150ms; }
+.gstage[data-on] .g-led { fill: var(--color-room-games); }
+.gstage .g-glow { opacity: .25; transition: opacity 600ms ease; }
+.gstage[data-on] .g-glow { opacity: .9; box-shadow: 0 6px 22px 2px rgba(91,140,255,.55); }
+/* disc and cartridge rise out of the slot */
+.gstage .g-disc { transform: translateY(105%); transition: transform 1100ms var(--ease-out-quint) 350ms; }
+.gstage[data-on] .g-disc { transform: translateY(0); }
+.gstage .g-cart { transform: translateY(100%); transition: transform 700ms var(--ease-out-quint) 300ms; }
+.gstage[data-on] .g-cart { transform: translateY(6%); }
+/* the case floats up next to the console */
+.gstage .g-case { opacity: 0; transform: translateY(16%) rotate(-5deg); transition: opacity 700ms ease 1000ms, transform 1300ms var(--ease-out-quint) 1000ms; }
+.gstage[data-on] .g-case { opacity: 1; transform: translateY(-6%) rotate(-3deg); }
+.gstage[data-on] .g-bob { animation: g-bob 4.5s ease-in-out 2.3s infinite alternate both; }
+@keyframes g-bob { from { transform: translateY(0) } to { transform: translateY(-4%) } }
+/* the screen wakes: black, a blue flash, then the cover */
+.gstage .g-screen { opacity: 0; }
+.gstage[data-on] .g-screen { animation: g-wake 1000ms ease-out 800ms both; }
+@keyframes g-wake { 0% { opacity: 0; filter: brightness(3) saturate(0) } 18% { opacity: .8 } 30% { opacity: .2 } 100% { opacity: 1; filter: none } }
+
 @media (prefers-reduced-motion: reduce) {
+  .g-bob { animation: none !important; }
   .cine-pan, .cine-grain, .cine-flicker { animation: none !important; opacity: 1; }
   .cine-pan { transform: translate3d(0, -20%, 0); }
 }

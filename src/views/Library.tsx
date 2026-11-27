@@ -5,6 +5,7 @@ import { store, useStoreVersion } from '../data/store';
 import { progress } from '../data/trophies';
 import type { Item, ItemType, Status } from '../data/types';
 import { CinemaScreen } from '../components/CinemaScreen';
+import { CONSOLE_KEYS, ConsoleBoard, consoleOf, type ConsoleKey } from '../components/GameRoom';
 import { ItemCard } from '../components/ItemCard';
 import { RoomArt } from '../components/RoomArt';
 import type { Room } from '../rooms';
@@ -66,7 +67,9 @@ export function Library({ room }: { room: Room }) {
 
   const type = room.types.includes(s.type) ? s.type : room.types[0];
   const items = store.all(type);
-  const families = type === 'game' ? PLATFORM_GROUPS.map(([g]) => g).filter(g => items.some(i => familyOf(i.platform) === g)) : [];
+  // game room: the consoles on the board pick the platform (kept in `family`)
+  const consoleKey: ConsoleKey = type === 'game' && (CONSOLE_KEYS as string[]).includes(s.family) ? s.family as ConsoleKey : 'all';
+  const families = type === 'game' ? [] : PLATFORM_GROUPS.map(([g]) => g).filter(g => items.some(i => familyOf(i.platform) === g));
   const family = families.includes(s.family) ? s.family : 'all';
   const statuses = Object.entries(STATUS[type]) as [Status, string][];
   const newOnes = items.filter(showsNew);
@@ -74,6 +77,7 @@ export function Library({ room }: { room: Room }) {
   const list = items
     .filter(i => s.status === 'all' || (s.status === 'new' ? showsNew(i) : i.status === s.status))
     .filter(i => family === 'all' || familyOf(i.platform) === family)
+    .filter(i => consoleKey === 'all' || consoleOf(i) === consoleKey)
     .filter(i => !s.q || i.title.toLowerCase().includes(s.q.trim().toLowerCase()))
     .sort(sorter(type !== 'game' && (s.sort === 'progress' || s.sort === 'playtime') ? 'added' : s.sort));
 
@@ -97,6 +101,7 @@ export function Library({ room }: { room: Room }) {
       </header>
 
       {room.id === 'cinema' && <NowShowing items={items} />}
+      {room.id === 'games' && <ConsoleBoard items={items} value={consoleKey} onPick={k => set({ family: k })} />}
 
       {room.types.length > 1 && (
         <div role="tablist" aria-label="Channel" className="mt-6 inline-flex rounded-xl border border-line bg-surface p-1">

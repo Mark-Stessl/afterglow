@@ -7,6 +7,7 @@ import { store, useStoreVersion } from '../data/store';
 import type { Item, Season, Status } from '../data/types';
 import { CinemaScreen } from '../components/CinemaScreen';
 import { Cover } from '../components/Cover';
+import { GameStage } from '../components/GameRoom';
 import { ROOMS } from '../rooms';
 import { href } from '../router';
 import { Chip, Sheet, Stars, btn, cn, input, toast } from '../ui/kit';
@@ -149,9 +150,10 @@ export function Detail({ id }: { id: string }) {
       </a>
 
       {item.type === 'movie' && <CinemaScreen key={item.id} item={item} className="mt-4" />}
+      {item.type === 'game' && <GameStage key={item.id} item={item} className="mt-4" />}
 
       <header className="mt-4 grid gap-6 sm:grid-cols-[200px_1fr] sm:gap-8">
-        <div className={cn('mx-auto w-44 sm:mx-0 sm:w-full', item.type === 'movie' && 'max-sm:hidden')}><Cover item={item} /></div>
+        <div className={cn('mx-auto w-44 sm:mx-0 sm:w-full', (item.type === 'movie' || item.type === 'game') && 'max-sm:hidden')}><Cover item={item} /></div>
         <div className="min-w-0">
           <h1 className="m-0 text-3xl font-bold leading-tight text-balance sm:text-4xl">{item.title}</h1>
           <p className="m-0 mt-2 text-muted">{meta.join(' · ')}</p>
