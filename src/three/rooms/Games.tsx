@@ -6,7 +6,7 @@
  * ottoman on a grey rug over a wood floor.
  * Shapes are built in real metres inside `True` groups so the room's depth squash does not flatten them.
  */
-import { useTexture } from '@react-three/drei';
+import { useGLTF, useTexture } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'react';
 import * as THREE from 'three';
@@ -328,39 +328,72 @@ function GamingChair({ leather }: { leather: THREE.Material }) {
 
 /**
  * A beanbag as it sits after use: a wide, heavy base resting flat on the floor, a softer, narrower top
- * that slumps back, a broad seat hollow, and a few large soft folds where the fabric gathers.
+ * slumping back, a seat hollow, sewn panel seams running down from the top, the fabric bunching into
+ * small creases near the floor, and darker shading (vertex colours) in the hollow, seams and creases.
  */
 function beanbagGeometry(seed: number) {
-  const g = new THREE.SphereGeometry(1, 96, 64);
+  const g = new THREE.SphereGeometry(1, 128, 80);
   const pos = g.attributes.position as THREE.BufferAttribute;
+  const colors = new Float32Array(pos.count * 3);
   const v = new THREE.Vector3();
   const ph = seed * 1.7;
+  const PANELS = 8;
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i);
     let { x, y, z } = v;
     const a = Math.atan2(z, x);
-    // flat underneath, with the filling bulging out just above the floor
+    let shade = 1;
+    // flat underneath, the filling bulging out just above the floor
     if (y < -0.55) y = -0.55 - (y + 0.55) * 0.08;
     const low = Math.max(0, 1 - Math.abs(y + 0.35) / 0.65);
     const spread = 1 + 0.22 * low;
-    // the top narrows and leans back (+z is the backrest side)
     const up = Math.max(0, y);
     const narrow = 1 - 0.18 * up;
-    // broad folds: four or five soft lobes around, strongest at mid height
+    // broad soft folds around, strongest at mid height
     const fold = 1 + 0.045 * Math.sin(a * 5 + ph) * (1 - Math.abs(y)) + 0.03 * Math.sin(a * 3 - ph) * low;
-    x *= spread * narrow * fold;
-    z *= spread * narrow * fold;
+    // panel seams: a narrow pinch along each meridian, fading out towards the floor
+    const toSeam = Math.abs(((a / (Math.PI * 2 / PANELS)) % 1 + 1) % 1 - 0.5) * 2; // 1 on a seam, 0 mid-panel
+    const seam = Math.pow(toSeam, 18) * Math.max(0, y + 0.4);
+    // small creases where the fabric bunches near the floor
+    const crease = 0.018 * Math.sin(a * 23 + ph * 3 + y * 6) * Math.max(0, 1 - Math.abs(y + 0.45) / 0.25);
+    const k = spread * narrow * fold * (1 - 0.03 * seam) * (1 + crease);
+    x *= k; z *= k;
     z += 0.18 * up * up;
     // the seat hollow, towards the front
-    y -= 0.42 * up * Math.exp(-((x * x) / 0.22 + ((z + 0.15) * (z + 0.15)) / 0.3));
+    const hollow = up * Math.exp(-((x * x) / 0.22 + ((z + 0.15) * (z + 0.15)) / 0.3));
+    y -= 0.42 * hollow;
+    shade -= 0.35 * hollow + 0.35 * seam + 6 * Math.max(0, -crease) + 0.25 * Math.max(0, -(y + 0.45)) * 4;
     pos.setXYZ(i, x, (y + 0.55) * 0.78, z);
+    const s = Math.max(0.45, Math.min(1, shade));
+    colors[i * 3] = colors[i * 3 + 1] = colors[i * 3 + 2] = s;
   }
+  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   g.computeVertexNormals();
   return g;
 }
 
+/** The scanned ottoman (Poly Haven "Ottoman_01"), re-covered in the room's navy velvet; its own creases and stitching stay. */
+function VelvetOttoman({ velvet }: { velvet: THREE.MeshPhysicalMaterial }) {
+  const { scene } = useGLTF(modelUrl('games/ottoman_01.glb'));
+  const obj = useMemo(() => {
+    const o = scene.clone(true);
+    o.traverse(n => {
+      const m = n as THREE.Mesh;
+      if (!m.isMesh) return;
+      const src = m.material as THREE.MeshStandardMaterial;
+      const mat = velvet.clone();
+      mat.vertexColors = false; // the shading colours belong to the beanbags; the scan has none
+      if (src.normalMap) { mat.normalMap = src.normalMap; mat.normalScale = new THREE.Vector2(1.3, 1.3); }
+      if (src.aoMap) mat.aoMap = src.aoMap;
+      m.material = mat;
+    });
+    return o;
+  }, [scene, velvet]);
+  return <primitive object={obj} scale={0.72} />;
+}
+
 /** Navy velvet (scanned, Poly Haven) for beanbags and ottoman, black leather for the chair. */
-function Soft({ children }: { children: (m: { velvet: THREE.Material; leather: THREE.Material }) => ReactNode }) {
+function Soft({ children }: { children: (m: { velvet: THREE.MeshPhysicalMaterial; leather: THREE.Material }) => ReactNode }) {
   const [vd, vn, ld, ln] = useTexture([
     modelUrl('cinema/velour_velvet_diff.webp'), modelUrl('cinema/velour_velvet_nor.webp'),
     modelUrl('cinema/fabric_leather_02_diff.webp'), modelUrl('cinema/fabric_leather_02_nor.webp'),
@@ -371,7 +404,8 @@ function Soft({ children }: { children: (m: { velvet: THREE.Material; leather: T
       if (srgb) c.colorSpace = THREE.SRGBColorSpace; c.needsUpdate = true; return c;
     };
     return {
-      velvet: new THREE.MeshPhysicalMaterial({ map: prep(vd, 3, true), normalMap: prep(vn, 3), color: '#3a4aa8', roughness: 0.85, sheen: 1, sheenColor: new THREE.Color('#7f8cff'), sheenRoughness: 0.5 }),
+      // matte fabric: a light sheen only, the weave repeated small; vertex colours shade folds and seams
+      velvet: new THREE.MeshPhysicalMaterial({ map: prep(vd, 7, true), normalMap: prep(vn, 7), normalScale: new THREE.Vector2(1.4, 1.4), color: '#4757c4', roughness: 0.95, sheen: 0.55, sheenColor: new THREE.Color('#8592f0'), sheenRoughness: 0.75, vertexColors: true }),
       leather: new THREE.MeshStandardMaterial({ map: prep(ld, 2, true), normalMap: prep(ln, 2), color: '#2a2a32', roughness: 0.45 }),
     };
   }, [vd, vn, ld, ln]);
@@ -504,8 +538,8 @@ export function Games({ w }: { w: number }) {
               <True p={[1.15, 0, 1.25]} rot={-0.6}><mesh geometry={bean[0]} material={velvet} scale={0.55} /></True>
               <True p={[-1.35, 0, 2.15]} rot={0.7}><mesh geometry={bean[1]} material={velvet} scale={0.6} /></True>
               <True p={[-0.25, 0, 0.95]}>
-                <RB size={[0.7, 0.36, 0.5]} p={[0, 0.18, 0]} r={0.06} mat={velvet} />
-                <RB size={[0.18, 0.02, 0.05]} p={[0.05, 0.37, 0]} r={0.008} mat={whiteMatte} rot={[0, 0.3, 0]} />
+                <VelvetOttoman velvet={velvet} />
+                <RB size={[0.18, 0.02, 0.05]} p={[0.05, 0.455, 0]} r={0.008} mat={whiteMatte} rot={[0, 0.3, 0]} />
               </True>
             </>
           )}
