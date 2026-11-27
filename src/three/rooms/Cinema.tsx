@@ -59,13 +59,13 @@ export function Cinema({ w }: { w: number }) {
       <Ring z={-1.2} w={w - 1.6} h={H - 1.1} ow={w} oh={H} depth={0.3} />
 
       {/* screen */}
-      <B p={[0, 2.25, -D / 2 + 0.04]} s={[2.9, 1.55, 0.04]} c="#0b0b0b" />
-      <mesh position={[0, 2.25, -D / 2 + 0.07]}>
-        <planeGeometry args={[2.7, 1.38]} />
+      <B p={[0, 2.2, -D / 2 + 0.04]} s={[3.36, 1.82, 0.04]} c="#0b0b0b" />
+      <mesh position={[0, 2.2, -D / 2 + 0.07]}>
+        <planeGeometry args={[3.2, 1.66]} />
         <meshBasicMaterial color="#f4efe6" toneMapped={false} />
       </mesh>
       {/* speakers beside the screen */}
-      {[-1, 1].map(s => <B key={s} p={[s * 1.75, 2.0, -D / 2 + 0.15]} s={[0.22, 1.2, 0.2]} c="#111" r={0.5} />)}
+      {[-1, 1].map(s => <B key={s} p={[s * 1.74, 2.0, -D / 2 + 0.15]} s={[0.1, 1.2, 0.2]} c="#111" r={0.5} />)}
 
       {/* risers with step lights */}
       <B p={[0, 0.175, -0.3]} s={[w - 0.9, 0.35, 2.5]} c="#2d2a27" r={0.95} />

@@ -3,95 +3,13 @@
  * and along the right, a beige sofa under the shelves, a tufted wingback armchair,
  * a floor lamp and a table lamp in warm light, a red Persian rug, a side table with tea.
  */
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { Instanced, Model, Surface, type Placed } from '../models';
 import { DEPTH } from '../scene';
-import { useThree } from '@react-three/fiber';
-import * as THREE from 'three';
-import { store } from '../../data/store';
-import type { Item } from '../../data/types';
 import { B, Cy, D, Down, H, Many, Shell, type V3 } from '../parts';
 import { BOOK_COLORS, panels, persian, planks, rng } from '../textures';
 
 const WOOD = '#3b2516';
-const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h) % 360; };
-
-/** A manga cover on a canvas: the title on a coloured card first, the real cover once it loads (when its host allows CORS). */
-function coverTexture(item: Item, onUpdate: () => void) {
-  const c = document.createElement('canvas');
-  c.width = 200; c.height = 288;
-  const g = c.getContext('2d')!;
-  const h = hue(item.title);
-  const grad = g.createLinearGradient(0, 0, 200, 288);
-  grad.addColorStop(0, `hsl(${h} 45% 42%)`);
-  grad.addColorStop(1, `hsl(${(h + 40) % 360} 40% 16%)`);
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 200, 288);
-  g.fillStyle = 'rgba(255,255,255,.92)';
-  g.font = 'bold 22px Space Grotesk, system-ui, sans-serif';
-  const words = item.title.split(/\s+/);
-  let line = '', y = 200;
-  const lines: string[] = [];
-  words.forEach(w => { if ((line + ' ' + w).trim().length > 14) { lines.push(line.trim()); line = w; } else line += ' ' + w; });
-  lines.push(line.trim());
-  lines.slice(0, 3).forEach(l => { g.fillText(l, 16, y); y += 26; });
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  if (item.cover) {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const r = Math.max(200 / img.width, 288 / img.height);
-        g.drawImage(img, (200 - img.width * r) / 2, (288 - img.height * r) / 2, img.width * r, img.height * r);
-        g.getImageData(0, 0, 1, 1); // throws when the image tainted the canvas
-        tex.needsUpdate = true;
-        onUpdate();
-      } catch { /* keep the title card */ }
-    };
-    // a separate URL: the page's own <img> copies are cached without CORS and would taint the canvas
-    img.src = item.cover.startsWith('data:') ? item.cover : item.cover + (item.cover.includes('?') ? '&' : '?') + 'cors=1';
-  }
-  return tex;
-}
-
-/** One volume standing face-out on a shelf, leaning back a little. */
-function FaceOut({ item, p }: { item: Item; p: V3 }) {
-  const invalidate = useThree(s => s.invalidate);
-  const tex = useMemo(() => coverTexture(item, invalidate), [item, invalidate]);
-  useEffect(() => () => tex.dispose(), [tex]);
-  const [w, h] = [0.24, 0.345];
-  return (
-    <group position={p} rotation={[-0.06, 0, 0]}>
-      <mesh position={[0, h / 2, -0.012]}><boxGeometry args={[w, h, 0.022]} /><meshStandardMaterial color="#efe9dc" roughness={0.9} /></mesh>
-      <mesh position={[0, h / 2, 0.0005]}><planeGeometry args={[w, h]} /><meshStandardMaterial map={tex} roughness={0.55} emissive="#ffffff" emissiveMap={tex} emissiveIntensity={0.35} /></mesh>
-    </group>
-  );
-}
-
-/** Your own manga (most recently touched first) face-out along two eye-level shelves of the back bookcase. */
-function MangaDisplay({ w, back }: { w: number; back: number }) {
-  const list = useMemo(() => store.all('manga')
-    .filter(m => m.status !== 'dropped')
-    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-    .slice(0, 8), []);
-  if (!list.length) return null;
-  const caseW = w - 0.75, x0 = -0.2;
-  const perRow = 4;
-  const gap = caseW / (perRow + 1);
-  const shelfH = (3.7 - 0.2) / 7;
-  return (
-    <group>
-      {list.map((m, i) => {
-        const row = Math.floor(i / perRow);
-        const col = i % perRow;
-        // row 3 and 2 of seven (counted from the floor); spread evenly between the side walls
-        const y = 0.12 + (3 - row) * shelfH + 0.018;
-        return <FaceOut key={m.id} item={m} p={[x0 - caseW / 2 + gap * (col + 1), y, back + 0.22 + 0.18]} />;
-      })}
-    </group>
-  );
-}
 
 /** A bookcase of `cols` bays and `rows` shelves, filled with books (instanced). */
 function Bookcase({ w, h, rows, depth = 0.38, seed }: { w: number; h: number; rows: number; depth?: number; seed: number }) {
@@ -215,7 +133,6 @@ export function Reading({ w }: { w: number }) {
       {/* bookshelves: back wall (two bays) and the right wall */}
       <group position={[-0.2, 0, back + 0.22]}><Bookcase w={w - 0.75} h={3.7} rows={7} seed={1} /></group>
       <group position={[w / 2 - 0.22, 0, -0.9]} rotation={[0, -Math.PI / 2, 0]}><Bookcase w={2.2} h={3.6} rows={7} seed={2} /></group>
-      <MangaDisplay w={w} back={back} />
 
       {/* real furniture once loaded; boxes until then */}
       <Suspense fallback={<BoxFurniture back={back} />}><RealFurniture w={w} back={back} /></Suspense>
