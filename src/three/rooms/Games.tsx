@@ -14,7 +14,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { store } from '../../data/store';
 import type { Item } from '../../data/types';
 import { Halo, Spill } from '../glow';
-import { Model, modelUrl, Surface } from '../models';
+import { Instanced, Model, modelUrl, Surface } from '../models';
 import { B, D, H, Led, Shell, Track, type V3 } from '../parts';
 import { DEPTH } from '../scene';
 import { rng } from '../textures';
@@ -179,31 +179,114 @@ function NeonShapes() {
 
 /* ---------- furniture ---------- */
 
-/** Upright white console: two curved white shells around a black core, blue light in the gap. */
+/** Smooth extruded solid from a 2D outline, with rounded (bevelled) edges. */
+function extruded(shape: THREE.Shape, depth: number, bevel: number, segs = 5) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelSize: bevel, bevelThickness: bevel, bevelSegments: segs, curveSegments: 24 });
+  g.translate(0, 0, -depth / 2);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Upright white console (about 39 cm tall): two white wings that flare out towards the top in a soft
+ * curve, a gloss-black core between them with a vent grille and a blue light along each gap, on a round stand.
+ */
 function Console() {
+  const wing = useMemo(() => {
+    // front-view outline of the right wing: narrow at the foot, curving outwards to a wide top
+    const s = new THREE.Shape();
+    s.moveTo(0.034, 0.012);
+    s.lineTo(0.046, 0.012);
+    s.bezierCurveTo(0.05, 0.14, 0.06, 0.29, 0.082, 0.384);
+    s.quadraticCurveTo(0.083, 0.392, 0.074, 0.392);
+    s.lineTo(0.05, 0.392);
+    s.bezierCurveTo(0.042, 0.3, 0.036, 0.15, 0.034, 0.012);
+    return extruded(s, 0.24, 0.006);
+  }, []);
+  const vents = useMemo(() => {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 256;
+    const g = c.getContext('2d')!; g.fillStyle = '#0b0b0e'; g.fillRect(0, 0, 32, 256);
+    g.fillStyle = '#1d1d24'; for (let y = 4; y < 256; y += 6) g.fillRect(4, y, 24, 2);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }, []);
+  const glow = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color(BLUE).multiplyScalar(2.2), toneMapped: false }), []);
   return (
     <group>
-      <RB size={[0.04, 0.4, 0.27]} p={[-0.045, 0.2, 0]} r={0.018} mat={white} rot={[0, 0, 0.03]} />
-      <RB size={[0.04, 0.4, 0.27]} p={[0.045, 0.2, 0]} r={0.018} mat={white} rot={[0, 0, -0.03]} />
-      <RB size={[0.06, 0.37, 0.24]} p={[0, 0.19, 0]} r={0.01} mat={gloss} />
-      <mesh position={[0, 0.37, 0.12]}><boxGeometry args={[0.055, 0.004, 0.004]} /><meshBasicMaterial color={new THREE.Color(BLUE).multiplyScalar(2)} toneMapped={false} /></mesh>
-      <RB size={[0.1, 0.012, 0.16]} p={[0, 0.006, 0]} r={0.005} mat={black} />
+      {/* stand and the black core */}
+      <mesh position={[0, 0.006, 0]} material={black}><cylinderGeometry args={[0.07, 0.075, 0.012, 32]} /></mesh>
+      <RB size={[0.066, 0.37, 0.245]} p={[0, 0.198, 0]} r={0.012} mat={gloss} />
+      <mesh position={[0, 0.2, 0.1235]}><planeGeometry args={[0.05, 0.3]} /><meshStandardMaterial map={vents} roughness={0.6} /></mesh>
+      {/* the two white wings, the left one mirrored */}
+      <mesh geometry={wing} material={white} />
+      <mesh geometry={wing} material={white} scale={[-1, 1, 1]} />
+      {/* blue light along the gaps between core and wings, and a disc drive slot */}
+      {[-1, 1].map(x => <mesh key={x} position={[x * 0.035, 0.2, 0.1245]} material={glow}><boxGeometry args={[0.0025, 0.3, 0.002]} /></mesh>)}
+      <mesh position={[0.06, 0.05, 0.127]} material={black}><boxGeometry args={[0.002, 0.08, 0.001]} /></mesh>
     </group>
   );
 }
 
-/** A white-and-black gamepad lying on the sideboard. */
+/**
+ * Wireless gamepad in white and black (about 16 cm wide): a bevelled body with two grips, a black face
+ * plate, a white touchpad with a blue light bar, two thumbsticks, a D-pad and four face buttons.
+ */
 function Controller() {
+  const body = useMemo(() => {
+    // top-view outline: the front edge, then each grip sweeping back towards the player
+    const s = new THREE.Shape();
+    s.moveTo(-0.05, -0.03);
+    s.bezierCurveTo(-0.02, -0.036, 0.02, -0.036, 0.05, -0.03);
+    s.bezierCurveTo(0.072, -0.028, 0.08, -0.012, 0.079, 0.01);
+    s.bezierCurveTo(0.078, 0.04, 0.074, 0.064, 0.06, 0.07);
+    s.bezierCurveTo(0.046, 0.075, 0.038, 0.06, 0.034, 0.042);
+    s.bezierCurveTo(0.03, 0.03, 0.012, 0.026, 0, 0.026);
+    s.bezierCurveTo(-0.012, 0.026, -0.03, 0.03, -0.034, 0.042);
+    s.bezierCurveTo(-0.038, 0.06, -0.046, 0.075, -0.06, 0.07);
+    s.bezierCurveTo(-0.074, 0.064, -0.078, 0.04, -0.079, 0.01);
+    s.bezierCurveTo(-0.08, -0.012, -0.072, -0.028, -0.05, -0.03);
+    const g = extruded(s, 0.018, 0.009, 6);
+    g.rotateX(Math.PI / 2); // lay it flat: outline in x/z, thickness up
+    return g;
+  }, []);
+  const face = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(-0.046, -0.006);
+    s.bezierCurveTo(-0.02, -0.01, 0.02, -0.01, 0.046, -0.006);
+    s.bezierCurveTo(0.06, -0.003, 0.064, 0.02, 0.058, 0.034);
+    s.bezierCurveTo(0.05, 0.046, 0.04, 0.04, 0.034, 0.03);
+    s.bezierCurveTo(0.024, 0.02, -0.024, 0.02, -0.034, 0.03);
+    s.bezierCurveTo(-0.04, 0.04, -0.05, 0.046, -0.058, 0.034);
+    s.bezierCurveTo(-0.064, 0.02, -0.06, -0.003, -0.046, -0.006);
+    const g = extruded(s, 0.002, 0.002, 3);
+    g.rotateX(Math.PI / 2);
+    return g;
+  }, []);
+  const glow = useMemo(() => new THREE.MeshBasicMaterial({ color: new THREE.Color(BLUE).multiplyScalar(2), toneMapped: false }), []);
+  const grey = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8a8c94', roughness: 0.4, metalness: 0.2 }), []);
+  const top = 0.02; // upper surface height
   return (
     <group rotation={[0, 0.25, 0]}>
-      <RB size={[0.12, 0.03, 0.06]} p={[0, 0.02, 0]} r={0.014} mat={white} />
+      <mesh geometry={body} material={white} position={[0, 0.011, 0]} />
+      <mesh geometry={face} material={black} position={[0, top + 0.001, 0.008]} />
+      {/* touchpad with its light bar */}
+      <RB size={[0.05, 0.004, 0.03]} p={[0, top + 0.004, -0.012]} r={0.002} mat={white} />
+      {[-1, 1].map(x => <mesh key={x} position={[x * 0.027, top + 0.003, -0.012]} material={glow}><boxGeometry args={[0.002, 0.002, 0.026]} /></mesh>)}
+      {/* thumbsticks: a post with a dished cap */}
       {[-1, 1].map(x => (
-        <mesh key={x} position={[x * 0.065, 0.017, 0.025]} rotation={[0.3, 0, x * 0.4]} material={white} scale={[1, 0.6, 1.5]}>
-          <sphereGeometry args={[0.028, 16, 12]} />
-        </mesh>
+        <group key={`s${x}`} position={[x * 0.022, top + 0.003, 0.016]}>
+          <mesh position={[0, 0.004, 0]} material={black}><cylinderGeometry args={[0.005, 0.006, 0.008, 16]} /></mesh>
+          <mesh position={[0, 0.009, 0]} material={black}><cylinderGeometry args={[0.009, 0.0085, 0.003, 24]} /></mesh>
+          <mesh position={[0, 0.0106, 0]} rotation={[Math.PI / 2, 0, 0]} material={grey}><torusGeometry args={[0.007, 0.0012, 6, 24]} /></mesh>
+        </group>
       ))}
-      <RB size={[0.06, 0.012, 0.035]} p={[0, 0.032, 0.008]} r={0.005} mat={black} />
-      {[-1, 1].map(x => <mesh key={`s${x}`} position={[x * 0.025, 0.04, 0.02]} material={black}><cylinderGeometry args={[0.009, 0.01, 0.012, 14]} /></mesh>)}
+      {/* D-pad on the left, four face buttons on the right */}
+      <group position={[-0.05, top + 0.003, -0.002]}>
+        <RB size={[0.018, 0.003, 0.006]} p={[0, 0.0015, 0]} r={0.0012} mat={grey} />
+        <RB size={[0.006, 0.003, 0.018]} p={[0, 0.0015, 0]} r={0.0012} mat={grey} />
+      </group>
+      {[[0, -0.009], [0.009, 0], [0, 0.009], [-0.009, 0]].map(([x, z], i) => (
+        <mesh key={`b${i}`} position={[0.05 + x, top + 0.004, -0.002 + z]} material={grey}><cylinderGeometry args={[0.0038, 0.0038, 0.003, 16]} /></mesh>
+      ))}
     </group>
   );
 }
@@ -243,20 +326,34 @@ function GamingChair({ leather }: { leather: THREE.Material }) {
   );
 }
 
-/** A beanbag: a slumped, wrinkled ball, flat underneath and dented where you sit. */
+/**
+ * A beanbag as it sits after use: a wide, heavy base resting flat on the floor, a softer, narrower top
+ * that slumps back, a broad seat hollow, and a few large soft folds where the fabric gathers.
+ */
 function beanbagGeometry(seed: number) {
-  const g = new THREE.SphereGeometry(1, 64, 40);
+  const g = new THREE.SphereGeometry(1, 96, 64);
   const pos = g.attributes.position as THREE.BufferAttribute;
   const v = new THREE.Vector3();
+  const ph = seed * 1.7;
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i);
     let { x, y, z } = v;
-    y = y < -0.35 ? -0.35 - (y + 0.35) * 0.15 : y;            // settles flat on the floor
-    const top = Math.max(0, y);
-    y -= 0.35 * Math.exp(-((x * x + (z + 0.2) * (z + 0.2)) / 0.25)) * top; // the seat dent
-    const wr = 1 + 0.035 * Math.sin(Math.atan2(z, x) * 9 + seed) * (1 - Math.abs(y)) + 0.02 * Math.sin(y * 14 + seed);
-    x *= wr * (1 + 0.12 * (1 - top)); z *= wr * (1 + 0.12 * (1 - top));
-    pos.setXYZ(i, x, y * 0.72, z);
+    const a = Math.atan2(z, x);
+    // flat underneath, with the filling bulging out just above the floor
+    if (y < -0.55) y = -0.55 - (y + 0.55) * 0.08;
+    const low = Math.max(0, 1 - Math.abs(y + 0.35) / 0.65);
+    const spread = 1 + 0.22 * low;
+    // the top narrows and leans back (+z is the backrest side)
+    const up = Math.max(0, y);
+    const narrow = 1 - 0.18 * up;
+    // broad folds: four or five soft lobes around, strongest at mid height
+    const fold = 1 + 0.045 * Math.sin(a * 5 + ph) * (1 - Math.abs(y)) + 0.03 * Math.sin(a * 3 - ph) * low;
+    x *= spread * narrow * fold;
+    z *= spread * narrow * fold;
+    z += 0.18 * up * up;
+    // the seat hollow, towards the front
+    y -= 0.42 * up * Math.exp(-((x * x) / 0.22 + ((z + 0.15) * (z + 0.15)) / 0.3));
+    pos.setXYZ(i, x, (y + 0.55) * 0.78, z);
   }
   g.computeVertexNormals();
   return g;
@@ -364,7 +461,13 @@ export function Games({ w }: { w: number }) {
       {/* neon shapes and floating shelves on the right of the back wall */}
       <group position={[1.2, 2.45, back + 0.04]}><NeonShapes /></group>
       <Shelf p={[0.95, 3.05, back + 0.13]} w={1.0} led={VIOLET}>
-        {books.map((b, i) => <B key={i} p={b.p} s={b.s} c={b.c} r={0.6} />)}
+        <Suspense fallback={<>{books.map((b, i) => <B key={i} p={b.p} s={b.s} c={b.c} r={0.6} />)}</>}>
+          {/* the scanned leather set from the reading nook, one row standing, a second set lying on top */}
+          <Instanced path="reading/book_encyclopedia_set_01.glb" items={[
+            { p: [-0.47, 0.024, -0.1], s: 0.9 },
+            { p: [0.17, 0.024, -0.02], rot: [0, 0, Math.PI / 2], s: 0.42, tint: '#8fa6e0' },
+          ]} />
+        </Suspense>
         <Suspense fallback={null}><Model path="reading/potted_plant_02.glb" p={[0.33, 0.023, 0]} s={0.42} /></Suspense>
       </Shelf>
       <Shelf p={[1.3, 2.05, back + 0.13]} w={1.0} led={PINK}>
@@ -398,8 +501,8 @@ export function Games({ w }: { w: number }) {
             <>
               <True p={[w / 2 - 0.85, 0, back + 1.3]} rot={Math.PI - 0.35}><GamingChair leather={leather} /></True>
               {/* beanbags and ottoman with a remote */}
-              <True p={[1.15, 0, 1.25]} rot={-0.6}><mesh geometry={bean[0]} material={velvet} position={[0, 0.4, 0]} scale={0.55} /></True>
-              <True p={[-1.35, 0, 2.15]} rot={0.7}><mesh geometry={bean[1]} material={velvet} position={[0, 0.4, 0]} scale={0.6} /></True>
+              <True p={[1.15, 0, 1.25]} rot={-0.6}><mesh geometry={bean[0]} material={velvet} scale={0.55} /></True>
+              <True p={[-1.35, 0, 2.15]} rot={0.7}><mesh geometry={bean[1]} material={velvet} scale={0.6} /></True>
               <True p={[-0.25, 0, 0.95]}>
                 <RB size={[0.7, 0.36, 0.5]} p={[0, 0.18, 0]} r={0.06} mat={velvet} />
                 <RB size={[0.18, 0.02, 0.05]} p={[0.05, 0.37, 0]} r={0.008} mat={whiteMatte} rot={[0, 0.3, 0]} />
