@@ -1,4 +1,6 @@
 # Builds Afterglow with Vite and publishes it to GitHub Pages on every push to main.
+# Build and deploy are separate jobs: the deploy job only starts once the uploaded site artifact is
+# fully registered (in one job, deploy-pages sometimes could not find it yet and failed).
 name: Deploy
 
 on:
@@ -11,27 +13,34 @@ permissions:
   pages: write
   id-token: write
 
+# one deploy at a time; a newer push waits instead of cancelling a deploy that is half done
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
