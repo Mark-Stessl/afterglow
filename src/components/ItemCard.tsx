@@ -34,7 +34,7 @@ export function StatusBadge({ item }: { item: Item }) {
   const label = statusLabel(item);
   if (!label) return null;
   return (
-    <span className="absolute left-1.5 top-1.5 z-10 inline-flex max-w-[calc(100%-12px)] items-center gap-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11px] font-semibold text-text shadow-[0_0_0_1px_rgba(255,255,255,.08)] backdrop-blur-sm">
+    <span className="absolute bottom-1.5 left-1.5 z-10 inline-flex max-w-[calc(100%-12px)] items-center gap-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11px] font-semibold text-text shadow-[0_0_0_1px_rgba(255,255,255,.08)] backdrop-blur-sm">
       <i aria-hidden="true" className={cn('block h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[item.status])} />
       <span className="truncate">{label}</span>
     </span>

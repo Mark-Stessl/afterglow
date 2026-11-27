@@ -15,13 +15,15 @@ import { cn } from '../ui/kit';
 import { Cover, kindOf } from './Cover';
 
 export type ConsoleKey = 'all' | 'ps5' | 'ps4' | 'switch' | 'pc' | 'xbox' | 'other';
-export const CONSOLE_KEYS: ConsoleKey[] = ['all', 'ps5', 'ps4', 'switch', 'pc', 'xbox', 'other'];
-const LABEL: Record<ConsoleKey, string> = { all: 'All games', ps5: 'PS5', ps4: 'PS4', switch: 'Switch', pc: 'PC', xbox: 'Xbox', other: 'Other' };
+/** The board shows the main consoles only: older PlayStation games stand with the PS5, every Switch game with the Switch 2. Other platforms are under All. */
+export const CONSOLE_KEYS: ConsoleKey[] = ['all', 'ps5', 'switch', 'pc', 'xbox'];
+const LABEL: Record<ConsoleKey, string> = { all: 'All games', ps5: 'PS5', ps4: 'PS4', switch: 'Switch 2', pc: 'PC', xbox: 'Xbox', other: 'Other' };
 
 /** Which console on the board a game belongs to. */
 export function consoleOf(item: Item): Exclude<ConsoleKey, 'all'> {
   const k = kindOf(item);
-  if (k === 'ps5' || k === 'ps4' || k === 'switch' || k === 'pc' || k === 'xbox') return k;
+  if (k === 'ps4') return 'ps5';
+  if (k === 'ps5' || k === 'switch' || k === 'switch2' || k === 'pc' || k === 'xbox') return k === 'switch2' ? 'switch' : k;
   return familyOf(item.platform) === 'Nintendo' ? 'switch' : 'other';
 }
 
@@ -182,8 +184,7 @@ function WallTv({ items }: { items: Item[] }) {
 
 export function ConsoleBoard({ items, value, onPick }: { items: Item[]; value: ConsoleKey; onPick: (k: ConsoleKey) => void }) {
   const count = (k: ConsoleKey) => (k === 'all' ? items.length : items.filter(i => consoleOf(i) === k).length);
-  // the four consoles from the concept always stand there; Xbox and "Other" only when they hold games
-  const keys = CONSOLE_KEYS.filter(k => !(k === 'xbox' || k === 'other') || count(k) > 0);
+  const keys = CONSOLE_KEYS;
 
   return (
     <div className="groom relative isolate mt-6 overflow-hidden rounded-xl border border-line bg-[radial-gradient(70%_80%_at_50%_30%,#2a2960,#13132c_70%,#0c0c1a)] px-3 pt-6 sm:px-6 sm:pt-8">

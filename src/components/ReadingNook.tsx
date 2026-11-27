@@ -29,7 +29,7 @@ function Spine({ item }: { item: Item }) {
   const label = `${item.title}, ${statusLabel(item)}${read ? `, chapter ${read}` : ''}${item.chapters ? ` of ${Math.floor(item.chapters)}` : ''}${fresh ? `, ${fresh} new` : ''}`;
   return (
     <a href={href('item', item.id)} aria-label={label} title={item.title}
-      className="spine group relative flex h-full shrink-0 items-end no-underline" style={{ width: w }}>
+      className={cn('spine group relative flex h-full shrink-0 items-end no-underline', item.status === 'dropped' && 'opacity-60 grayscale')} style={{ width: w }}>
       <span className="relative flex w-full flex-col items-center overflow-hidden rounded-[2px_2px_1px_1px] shadow-[inset_2px_0_0_rgba(255,255,255,.12),inset_-3px_0_0_rgba(0,0,0,.25),0_0_0_1px_rgba(0,0,0,.35)] transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
         style={{ height: `${tall}%`, background: `linear-gradient(90deg, hsl(${h} 38% 30%), hsl(${h} 42% 38%) 45%, hsl(${h} 38% 28%))` }}>
         {/* status dot at the top, the obi band at the bottom */}
