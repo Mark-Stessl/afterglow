@@ -4,6 +4,7 @@ import { hoursOf, newCount, showsNew } from '../data/items';
 import { store, useStoreVersion } from '../data/store';
 import { progress } from '../data/trophies';
 import type { Item, ItemType, Status } from '../data/types';
+import { CinemaScreen } from '../components/CinemaScreen';
 import { ItemCard } from '../components/ItemCard';
 import { RoomArt } from '../components/RoomArt';
 import type { Room } from '../rooms';
@@ -39,6 +40,22 @@ function sorter(sort: Sort) {
     playtime: (a, b) => Number(hrs(a) == null) - Number(hrs(b) == null) || (hrs(b) || 0) - (hrs(a) || 0),
   };
   return fns[sort];
+}
+
+/** Cinema: the screen above the list plays the movie touched last. */
+function NowShowing({ items }: { items: Item[] }) {
+  const pick = items.filter(i => i.status !== 'dropped').sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))[0];
+  return (
+    <div className="mt-6">
+      {pick ? (
+        <a href={href('item', pick.id)} aria-label={`Now showing: ${pick.title}`} className="block rounded-xl no-underline">
+          <CinemaScreen key={pick.id} item={pick} compact caption={<>Now showing · <span className="text-text">{pick.title}</span></>} />
+        </a>
+      ) : (
+        <CinemaScreen compact caption="Nothing showing yet" />
+      )}
+    </div>
+  );
 }
 
 export function Library({ room }: { room: Room }) {
@@ -78,6 +95,8 @@ export function Library({ room }: { room: Room }) {
         </div>
         <button type="button" className={btn.primary} onClick={() => setAdding(true)}><Plus /> Add {TYPES[type].label.toLowerCase()}</button>
       </header>
+
+      {room.id === 'cinema' && <NowShowing items={items} />}
 
       {room.types.length > 1 && (
         <div role="tablist" aria-label="Channel" className="mt-6 inline-flex rounded-xl border border-line bg-surface p-1">

@@ -52,3 +52,50 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
 }
+
+/* ---------- Cinema screen (src/components/CinemaScreen.tsx) ---------- */
+.cine { --screen-light: var(--color-room-cinema); }
+.cine-curtain {
+  position: absolute; top: 0; bottom: 0; width: 51%; z-index: 2;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.35), transparent 25%, transparent 70%, rgba(0,0,0,.55)),
+    repeating-linear-gradient(90deg, #4a0c15 0, #7a1826 14px, #5e101b 26px, #3d0a12 38px);
+  box-shadow: inset 0 0 40px rgba(0,0,0,.5);
+  transition: transform 1100ms var(--ease-out-quint);
+}
+.cine-curtain-l { left: 0; transform-origin: left center; }
+.cine-curtain-r { right: 0; transform-origin: right center; }
+/* open: gathered at the sides, not gone */
+.cine[data-open] .cine-curtain-l { transform: scaleX(.16); }
+.cine[data-open] .cine-curtain-r { transform: scaleX(.16); }
+.cine-valance {
+  z-index: 3;
+  background: repeating-linear-gradient(90deg, #5a101b 0, #7d1a28 12px, #4a0c15 24px);
+  -webkit-mask: radial-gradient(18px 10px at 18px 100%, transparent 98%, #000) 0 0 / 36px 100% repeat-x;
+          mask: radial-gradient(18px 10px at 18px 100%, transparent 98%, #000) 0 0 / 36px 100% repeat-x;
+  box-shadow: 0 6px 18px rgba(0,0,0,.6);
+}
+.cine-glow { opacity: 0; transition: opacity 1200ms ease 900ms; }
+.cine[data-open] .cine-glow { opacity: .32; }
+.cine-beam {
+  z-index: 1;
+  background: linear-gradient(0deg, transparent 10%, color-mix(in oklab, var(--screen-light) 14%, transparent) 70%, transparent);
+  clip-path: polygon(47% 100%, 53% 100%, 82% 12%, 18% 12%);
+  mix-blend-mode: screen; opacity: 0; transition: opacity 900ms ease 700ms;
+}
+.cine[data-open] .cine-beam { opacity: .55; }
+.cine-flicker { opacity: 0; }
+.cine[data-open] .cine-flicker { animation: cine-flicker 900ms steps(1, end) 650ms both; }
+@keyframes cine-flicker { 0% { opacity: 0 } 14% { opacity: .75 } 22% { opacity: .12 } 36% { opacity: .9 } 44% { opacity: .4 } 58%, 100% { opacity: 1 } }
+/* slow pan over the (portrait) cover inside the wide screen */
+.cine[data-open] .cine-pan { animation: cine-pan 28s ease-in-out 1s infinite alternate both; }
+@keyframes cine-pan { from { transform: translate3d(0, -6%, 0) scale(1.02) } to { transform: translate3d(0, -62%, 0) scale(1.07) } }
+.cine-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: cine-grain 700ms steps(3) infinite;
+}
+@keyframes cine-grain { 0% { transform: translate(0, 0) } 33% { transform: translate(-7%, 4%) } 66% { transform: translate(5%, -6%) } 100% { transform: translate(0, 0) } }
+@media (prefers-reduced-motion: reduce) {
+  .cine-pan, .cine-grain, .cine-flicker { animation: none !important; opacity: 1; }
+  .cine-pan { transform: translate3d(0, -20%, 0); }
+}
