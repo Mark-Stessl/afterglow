@@ -166,11 +166,7 @@ function kitTexture(i: number) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
-/**
- * A football shirt as a soft 3D shape: the outline (body, sleeves, a dip for the collar) extruded with deep
- * rounded edges so it looks filled out, with gentle folds pressed into the front and a separate collar band.
- * About 0.42 m wide; front faces +z.
- */
+/** The shirt outline (body, sleeves, a dip for the collar), about 0.42 m wide. */
 const SHIRT_W = 0.42, SHIRT_H = 0.48;
 function shirtShape() {
   const S = new THREE.Shape();
@@ -190,24 +186,6 @@ function shirtShape() {
   S.lineTo(...P(-0.2, 1));
   return S;
 }
-
-const shirtGeometry = (() => {
-  const S = shirtShape();
-  const g = new THREE.ExtrudeGeometry(S, { depth: 0.006, bevelEnabled: true, bevelThickness: 0.018, bevelSize: 0.012, bevelSegments: 5, curveSegments: 16, steps: 1 });
-  // folds: soft diagonal creases on the front, deeper towards the hem; uv from the outline's bounds
-  const pos = g.attributes.position as THREE.BufferAttribute;
-  const uv = g.attributes.uv as THREE.BufferAttribute;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const front = z > 0.004 ? 1 : 0;
-    // two shoulder-to-hem drapes, a sag across the chest and fine crinkles: enough relief for the light to catch
-    const fold = 0.016 * Math.sin(x * 22 + y * 12) * (0.7 - y * 1.6) + 0.01 * Math.cos(x * 9 - y * 20) + 0.004 * Math.sin(y * 55 + x * 8);
-    pos.setZ(i, z + front * fold);
-    uv.setXY(i, x / 0.42 + 0.5, y / 0.48 + 0.5);
-  }
-  g.computeVertexNormals();
-  return g;
-})();
 
 /** The shirt outline as a white-on-black mask, in the same uv space as the body (bounds 0.42 × 0.48). */
 const shirtMask = (() => {
@@ -230,13 +208,20 @@ const shirtMask = (() => {
 const shirtFront = (() => {
   const g = new THREE.PlaneGeometry(SHIRT_W, SHIRT_H, 84, 96);
   const pos = g.attributes.position as THREE.BufferAttribute;
+  const col = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i);
     const torso = Math.max(0, 1 - (x / 0.13) ** 2) ** 0.5 * Math.max(0, 1 - ((y + 0.02) / 0.26) ** 2) ** 0.5;
     const sleeve = Math.max(0, 1 - ((Math.abs(x) - 0.16) / 0.06) ** 2 - ((y - 0.13) / 0.07) ** 2) * 0.5;
-    const fold = 0.012 * Math.sin(x * 22 + y * 12) * (0.7 - y * 1.6) + 0.007 * Math.cos(x * 9 - y * 20) + 0.003 * Math.sin(y * 55 + x * 8);
-    pos.setZ(i, 0.03 * torso + 0.018 * sleeve + fold);
+    const fold = 0.016 * Math.sin(x * 22 + y * 12) * (0.7 - y * 1.6) + 0.009 * Math.cos(x * 9 - y * 20) + 0.003 * Math.sin(y * 55 + x * 8);
+    const body = 0.045 * torso + 0.025 * sleeve;
+    pos.setZ(i, body + fold);
+    // shading: the fabric falls away towards the edges and into the fold valleys
+    const shade = 0.62 + 0.38 * Math.min(1, body / 0.04) + 9 * Math.min(0, fold);
+    const v = Math.max(0.4, Math.min(1, shade));
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
   }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   g.computeVertexNormals();
   return g;
 })();
@@ -254,12 +239,11 @@ function ShadowBox({ p, rot, size, kit }: { p: V3; rot?: V3; size: [number, numb
       {[-1, 1].map(s => <B key={`v${s}`} p={[s * (fw / 2 - 0.02), 0, 0.04]} s={[0.04, fh, 0.1]} c="#0e0e0f" r={0.4} />)}
       {[-1, 1].map(s => <B key={`h${s}`} p={[0, s * (fh / 2 - 0.02), 0.04]} s={[fw, 0.04, 0.1]} c="#0e0e0f" r={0.4} />)}
       <group position={[0, -0.01, 0.03]} scale={scale}>
-        <mesh geometry={shirtGeometry}><meshStandardMaterial map={map} roughness={0.82} /></mesh>
-        <mesh geometry={shirtFront} position={[0, 0, 0.026]}>
-          <meshStandardMaterial map={map} alphaMap={shirtMask} alphaTest={0.5} roughness={0.85} side={THREE.DoubleSide} />
+        <mesh geometry={shirtFront} position={[0, 0, 0.002]}>
+          <meshStandardMaterial map={map} alphaMap={shirtMask} alphaTest={0.5} vertexColors roughness={0.85} side={THREE.DoubleSide} />
         </mesh>
         {/* collar band */}
-        <mesh position={[0, 0.212, 0.05]} rotation={[0.25, 0, 0]}><torusGeometry args={[0.045, 0.008, 8, 24, Math.PI]} /><meshStandardMaterial color={trim} roughness={0.7} /></mesh>
+        <mesh position={[0, 0.212, 0.03]} rotation={[0.25, 0, 0]}><torusGeometry args={[0.045, 0.008, 8, 24, Math.PI]} /><meshStandardMaterial color={trim} roughness={0.7} /></mesh>
       </group>
       {/* glass with a faint sheen */}
       <mesh position={[0, 0, 0.088]}><planeGeometry args={[fw - 0.08, fh - 0.08]} /><meshPhysicalMaterial color="#ffffff" transparent opacity={0.08} roughness={0.03} clearcoat={1} depthWrite={false} /></mesh>
@@ -405,11 +389,11 @@ export function Trophies({ w }: { w: number }) {
         <pointLight position={[0, 2.2, 0.6]} color="#fff0d0" intensity={2} distance={2.2} decay={1.8} />
       </group>
 
-      {/* four leather lounge chairs (Poly Haven scan), each turned to face the middle of the room.
+      {/* two leather lounge chairs (Poly Haven scan), facing each other across the pedestal.
           The scan's seat faces +z; the angle is worked out in true (unsquashed) depth. */}
       <Suspense fallback={null}>
-        {([[-1.2, 0.6], [-1.0, 1.75], [1.2, 0.6], [1.0, 1.75]] as const).map(([x, z], i) => {
-          const mid = 1.15;
+        {([[-1.15, 0.9], [1.15, 0.9]] as const).map(([x, z], i) => {
+          const mid = 0.9;
           const rot = Math.atan2(-x, (mid - z) * DEPTH);
           return <True key={i} p={[x, 0, z]} rot={rot}><Model path="trophies/lounge_chair.glb" p={[0, 0, 0]} s={0.82} /></True>;
         })}
