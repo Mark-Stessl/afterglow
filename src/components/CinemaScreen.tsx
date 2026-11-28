@@ -1,7 +1,8 @@
 /**
  * The cinema: a screen between velvet curtains, a projector beam over two rows of seats.
- * With a movie, the curtains open, the projector flickers on and the cover "plays":
- * a slow pan over it, letterbox bars, light grain. The screen's light spills into the room.
+ * With a movie, the curtains open, the projector flickers on and the cover "plays": the whole poster,
+ * centred on a 16:9 screen over a blurred, dimmed copy of itself, with a slow zoom and light grain.
+ * The screen's light spills into the room.
  * Plain DOM and CSS (no WebGL), so real cover images always show and it costs almost nothing.
  */
 import { useEffect, useState, type ReactNode } from 'react';
@@ -14,8 +15,14 @@ function Film({ item }: { item: Item }) {
   const [failed, setFailed] = useState(false);
   if (item.cover && !failed) {
     return (
-      <img src={item.cover} alt="" draggable={false} onError={() => setFailed(true)}
-        className="cine-pan absolute inset-x-0 top-0 h-auto w-full max-w-none select-none" />
+      <div className="cine-zoom absolute inset-0">
+        {/* the poster's own colours fill the sides, blurred and dimmed */}
+        <img src={item.cover} alt="" aria-hidden="true" draggable={false}
+          className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-xl saturate-125 select-none" />
+        {/* the whole poster, full height */}
+        <img src={item.cover} alt="" draggable={false} onError={() => setFailed(true)}
+          className="absolute inset-y-0 left-1/2 h-full w-auto max-w-none -translate-x-1/2 object-contain shadow-[0_0_40px_rgba(0,0,0,.6)] select-none" />
+      </div>
     );
   }
   const h = hue(item.title);
@@ -69,7 +76,7 @@ export function CinemaScreen({ item, caption, className, compact }: {
 
   return (
     <div
-      className={cn('cine relative isolate overflow-hidden rounded-xl border border-line bg-[#0b080c] [container-type:inline-size]', compact ? 'aspect-[2/1] md:aspect-[2.8/1]' : 'aspect-[4/3] sm:aspect-[2/1]', className)}
+      className={cn('cine relative isolate overflow-hidden rounded-xl border border-line bg-[#0b080c] [container-type:inline-size]', compact ? 'aspect-[16/9] md:aspect-[2.2/1]' : 'aspect-[4/3] sm:aspect-[16/9]', className)}
       data-open={open || undefined}
     >
       {/* room: dark walls, the screen's glow on them and on the floor */}
@@ -80,8 +87,8 @@ export function CinemaScreen({ item, caption, className, compact }: {
       )}
 
       {/* screen */}
-      <div className={cn('absolute left-1/2 -translate-x-1/2', compact ? 'top-[9%] w-[64%] md:w-[48%]' : 'top-[10%] w-[82%] sm:top-[8%] sm:w-[66%]')}>
-        <div className="relative aspect-[2/1] overflow-hidden rounded-[3px] bg-[#050406] shadow-[0_0_0_3px_#151017,0_0_0_5px_#0a070b]">
+      <div className={cn('absolute left-1/2 -translate-x-1/2', compact ? 'top-[10%] w-[62%] md:w-[50%]' : 'top-[10%] w-[82%] sm:top-[9%] sm:w-[62%]')}>
+        <div className="relative aspect-[16/9] overflow-hidden rounded-[3px] bg-[#050406] shadow-[0_0_0_3px_#151017,0_0_0_5px_#0a070b]">
           {playing && (
             <div className="cine-flicker absolute inset-0">
               <Film item={item!} />
@@ -89,9 +96,6 @@ export function CinemaScreen({ item, caption, className, compact }: {
               <div aria-hidden="true" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,.75)]" />
             </div>
           )}
-          {/* letterbox bars: the picture runs at 2.39:1 inside a 2:1 screen */}
-          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[8%] bg-black" />
-          <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[8%] bg-black" />
         </div>
       </div>
 
