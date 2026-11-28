@@ -536,7 +536,7 @@ export function Games({ w }: { w: number }) {
               <True p={[w / 2 - 0.85, 0, back + 1.3]} rot={Math.PI - 0.35}><GamingChair leather={leather} /></True>
               {/* beanbags and ottoman with a remote */}
               <True p={[1.15, 0, 1.25]} rot={-0.6}><mesh geometry={bean[0]} material={velvet} scale={0.55} /></True>
-              <True p={[-1.35, 0, 2.15]} rot={0.7}><mesh geometry={bean[1]} material={velvet} scale={0.6} /></True>
+              <True p={[-1.3, 0, 1.45]} rot={0.7}><mesh geometry={bean[1]} material={velvet} scale={0.6} /></True>
               <True p={[-0.25, 0, 0.95]}>
                 <VelvetOttoman velvet={velvet} />
                 <RB size={[0.18, 0.02, 0.05]} p={[0.05, 0.455, 0]} r={0.008} mat={whiteMatte} rot={[0, 0.3, 0]} />
