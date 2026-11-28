@@ -72,38 +72,197 @@ function Sofa() {
 
 /* ---------- the fireplace ---------- */
 
-/** A suspended black bowl fireplace: a turned body with a round opening, a flue to the ceiling, a fire inside. */
+/** A flame: a soft teardrop gradient on a canvas (white-yellow core, orange, red edge). */
+function flameTexture() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 128;
+  const g = c.getContext('2d')!;
+  const tongue = (cx: number, w: number, top: number, col: string) => {
+    g.fillStyle = col;
+    g.beginPath(); g.moveTo(cx - w, 128);
+    g.bezierCurveTo(cx - w, 80, cx - w * 0.3, top + 30, cx, top);
+    g.bezierCurveTo(cx + w * 0.3, top + 30, cx + w, 80, cx + w, 128); g.fill();
+  };
+  g.filter = 'blur(3px)';
+  tongue(32, 30, 8, 'rgba(255,70,10,.55)');
+  tongue(32, 22, 26, 'rgba(255,140,30,.85)');
+  tongue(32, 13, 50, 'rgba(255,215,120,.95)');
+  tongue(32, 6, 78, 'rgba(255,250,225,1)');
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+/** A log: a slightly tapered, bark-dark cylinder with glowing cut ends. */
+function Log({ p, rot, len, r }: { p: V3; rot: V3; len: number; r: number }) {
+  return (
+    <group position={p} rotation={rot}>
+      <mesh rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[r * 0.9, r, len, 14, 1]} />
+        <meshStandardMaterial color="#2a1a10" roughness={0.95} emissive="#ff4a10" emissiveIntensity={0.18} />
+      </mesh>
+      {[-1, 1].map(s => (
+        <mesh key={s} position={[s * len / 2, 0, 0]} rotation={[0, s * Math.PI / 2, 0]}>
+          <circleGeometry args={[r * (s > 0 ? 0.9 : 1), 14]} />
+          <meshBasicMaterial color={new THREE.Color(2.2, 0.7, 0.15)} toneMapped={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * A suspended black bowl fireplace: a turned steel body with a real round opening, a sooty interior lit
+ * orange from below, crossed logs on a bed of glowing embers, and layered flames, with a flue to the ceiling.
+ */
 function Fireplace({ flue }: { flue: number }) {
+  const open = { y: -0.04, r: 0.25 };
   const body = useMemo(() => {
     // profile of the bowl turned around the y axis: rounded underside, waist, a cone up into the flue
-    const pts = [[0, -0.42], [0.24, -0.38], [0.4, -0.22], [0.44, 0], [0.4, 0.18], [0.26, 0.32], [0.1, 0.42], [0.07, 0.5]]
+    const key = [[0, -0.42], [0.24, -0.38], [0.4, -0.22], [0.44, 0], [0.4, 0.18], [0.26, 0.32], [0.1, 0.42], [0.07, 0.5]]
       .map(([x, y]) => new THREE.Vector2(x, y));
-    return new THREE.LatheGeometry(pts, 48);
+    // a smooth, finely divided profile, so the cut-out opening gets a clean round edge
+    const pts = new THREE.SplineCurve(key).getPoints(140);
+    const g = new THREE.LatheGeometry(pts, 220, 0, Math.PI * 2).toNonIndexed();
+    // cut the opening: drop every triangle on the front that falls inside the circle
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    const keep: number[] = [];
+    for (let i = 0; i < pos.count; i += 3) {
+      let inside = true;
+      for (let k = 0; k < 3; k++) {
+        const x = pos.getX(i + k), y = pos.getY(i + k), z = pos.getZ(i + k);
+        if (!(z > 0.1 && x * x + (y - open.y) * (y - open.y) < open.r * open.r)) inside = false;
+      }
+      if (!inside) for (let k = 0; k < 3; k++) keep.push(pos.getX(i + k), pos.getY(i + k), pos.getZ(i + k));
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3));
+    out.computeVertexNormals();
+    return out;
   }, []);
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#121212', roughness: 0.55, metalness: 0.6, side: THREE.DoubleSide }), []);
-  const fire = useMemo(() => {
+  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#121212', roughness: 0.55, metalness: 0.6 }), []);
+  // the inside: soot black, lit orange towards the fire bed (vertex colours on a back-faced shell)
+  const inner = useMemo(() => {
+    const g = new THREE.SphereGeometry(0.4, 40, 28);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    const col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const heat = Math.max(0, 1 - (y + 0.2) / 0.5);
+      col[i * 3] = 0.05 + 0.55 * heat * heat; col[i * 3 + 1] = 0.03 + 0.16 * heat * heat; col[i * 3 + 2] = 0.02 + 0.03 * heat;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return g;
+  }, []);
+  const flame = useMemo(() => flameTexture(), []);
+  const embers = useMemo(() => {
     const c = document.createElement('canvas'); c.width = c.height = 128;
     const g = c.getContext('2d')!;
-    const grad = g.createRadialGradient(64, 84, 4, 64, 70, 60);
-    grad.addColorStop(0, '#fff3c0'); grad.addColorStop(0.25, '#ffb347'); grad.addColorStop(0.6, '#e2501c'); grad.addColorStop(1, 'rgba(60,10,0,0)');
-    g.fillStyle = '#1a0a04'; g.fillRect(0, 0, 128, 128);
-    g.fillStyle = grad; g.beginPath(); g.ellipse(64, 80, 56, 44, 0, 0, Math.PI * 2); g.fill();
-    // flame tongues
-    g.fillStyle = 'rgba(255,214,120,.85)';
-    [[44, 30], [64, 18], [84, 34]].forEach(([x, top]) => { g.beginPath(); g.moveTo(x - 10, 92); g.quadraticCurveTo(x - 4, top + 30, x, top); g.quadraticCurveTo(x + 6, top + 30, x + 10, 92); g.fill(); });
+    g.fillStyle = '#1a0804'; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 260; i++) {
+      const x = Math.random() * 128, y = Math.random() * 128, r = 2 + Math.random() * 6;
+      const hot = Math.random();
+      g.fillStyle = hot > 0.6 ? '#ffb040' : hot > 0.25 ? '#e2501c' : '#5a1a08';
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   }, []);
+  const flameMat = (k: number) => <meshBasicMaterial map={flame} color={new THREE.Color(k, k, k)} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} side={THREE.DoubleSide} />;
+  const bed = open.y - 0.13;
   return (
     <group>
       <mesh geometry={body} material={steel} />
-      <mesh position={[0, 0.5 + flue / 2, 0]} material={steel}><cylinderGeometry args={[0.07, 0.07, flue, 24]} /></mesh>
-      {/* the opening at the front with the fire behind it */}
-      <mesh position={[0, -0.02, 0.405]} rotation={[0, 0, 0]}>
-        <circleGeometry args={[0.26, 40]} />
-        <meshBasicMaterial map={fire} color={new THREE.Color(1.8, 1.4, 1.1)} toneMapped={false} />
+      <mesh geometry={inner} position={[0, 0, -0.01]}>
+        <meshStandardMaterial vertexColors color="#4a4440" side={THREE.BackSide} roughness={1} />
       </mesh>
-      <mesh position={[0, -0.02, 0.41]}><torusGeometry args={[0.26, 0.012, 8, 48]} /><meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.4} /></mesh>
-      <pointLight position={[0, -0.05, 0.6]} color="#ff9a4a" intensity={3.5} distance={3.5} decay={1.6} />
+      <mesh position={[0, 0.5 + flue / 2, 0]} material={steel}><cylinderGeometry args={[0.07, 0.07, flue, 24]} /></mesh>
+      {/* a thin rim around the opening */}
+      <mesh position={[0, open.y, 0.345]}><torusGeometry args={[open.r, 0.012, 10, 64]} /><meshStandardMaterial color="#0a0a0a" metalness={0.7} roughness={0.35} /></mesh>
+      {/* bed of embers, two crossed logs, flames rising between them */}
+      <mesh position={[0, bed, 0.1]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.22, 32]} />
+        <meshBasicMaterial map={embers} color={new THREE.Color(1.6, 1.2, 1)} toneMapped={false} />
+      </mesh>
+      <Log p={[-0.02, bed + 0.04, 0.1]} rot={[0, 0.5, 0.08]} len={0.3} r={0.035} />
+      <Log p={[0.02, bed + 0.07, 0.12]} rot={[0, -0.6, -0.12]} len={0.28} r={0.032} />
+      {[[-0.06, 0.09, 0.15, 1.6], [0.05, 0.11, 0.17, 1.8], [0, 0.13, 0.22, 2.2], [-0.02, 0.1, 0.12, 1.4], [0.07, 0.08, 0.13, 1.5]].map(([x, z, h, k], i) => (
+        <mesh key={i} position={[x, bed + 0.05 + h / 2, z]} rotation={[0, (i - 2) * 0.5, 0]}>
+          <planeGeometry args={[h * 0.55, h]} />
+          {flameMat(k)}
+        </mesh>
+      ))}
+      <pointLight position={[0, bed + 0.12, 0.45]} color="#ff8a3a" intensity={3.8} distance={3.5} decay={1.6} />
+    </group>
+  );
+}
+
+/* ---------- art and window ---------- */
+
+/** A real painting (public domain, via Wikimedia Commons) with a faint sheen of glass over it. */
+function Artwork({ file, p, size }: { file: string; p: V3; size: [number, number] }) {
+  const map = useTexture(modelUrl(file));
+  useMemo(() => { map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4; map.needsUpdate = true; }, [map]);
+  return (
+    <group position={p}>
+      <mesh><planeGeometry args={size} /><meshStandardMaterial map={map} roughness={0.7} /></mesh>
+      <mesh position={[0, 0, 0.002]}>
+        <planeGeometry args={size} />
+        <meshPhysicalMaterial color="#ffffff" transparent opacity={0.06} roughness={0.05} clearcoat={1} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/** A slim brass picture light above a frame, with its warm pool of light on the wall and picture. */
+function PictureLight({ y, w }: { y: number; w: number }) {
+  return (
+    <group position={[0, y, 0]}>
+      <B p={[0, 0, 0.09]} s={[w, 0.03, 0.04]} c="#b08a4a" m={0.9} r={0.3} />
+      <B p={[0, 0.03, 0.04]} s={[0.02, 0.06, 0.08]} c="#b08a4a" m={0.9} r={0.3} />
+      <B p={[0, -0.016, 0.09]} s={[w - 0.04, 0.004, 0.02]} glow e={WARM} />
+      <Halo p={[0, -0.32, 0.03]} size={[w + 0.5, 0.8]} color={WARM} strength={0.3} />
+    </group>
+  );
+}
+
+/**
+ * The tall window: a recessed opening with light plaster reveals, slim black frames and glazing bars, a
+ * photographed night skyline behind the glass (Shanghai Bund, Poly Haven CC0 panorama), a faint reflection of
+ * the warm room on the glass, a stone sill, and the city's cool light falling on the floor.
+ */
+function WindowView() {
+  const view = useTexture(modelUrl('living/window_night.webp'));
+  useMemo(() => { view.colorSpace = THREE.SRGBColorSpace; view.needsUpdate = true; }, [view]);
+  const W = 1.1, Hh = 3.9, depth = 0.22;
+  const glassSheen = useMemo(() => {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 256;
+    const g = c.getContext('2d')!;
+    const grad = g.createLinearGradient(0, 256, 64, 0);
+    grad.addColorStop(0, 'rgba(255,210,160,.18)'); grad.addColorStop(0.45, 'rgba(255,210,160,0)'); grad.addColorStop(0.7, 'rgba(255,255,255,.05)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 64, 256);
+    return new THREE.CanvasTexture(c);
+  }, []);
+  return (
+    <group>
+      {/* the view, set back in the reveal */}
+      <mesh position={[0, 0, 0.012]}>
+        <planeGeometry args={[W, Hh]} />
+        <meshBasicMaterial map={view} color={new THREE.Color(0.42, 0.42, 0.52)} toneMapped={false} />
+      </mesh>
+      {/* reveals: the wall's thickness around the opening */}
+      {[-1, 1].map(x => <B key={x} p={[x * (W / 2 + 0.015), 0, depth / 2]} s={[0.03, Hh, depth]} c="#c7b9a3" r={0.9} />)}
+      <B p={[0, Hh / 2 + 0.015, depth / 2]} s={[W + 0.06, 0.03, depth]} c="#c7b9a3" r={0.9} />
+      {/* frame, one upright and two transoms */}
+      {[-1, 1].map(x => <B key={`f${x}`} p={[x * (W / 2 - 0.02), 0, 0.04]} s={[0.04, Hh, 0.05]} c="#141414" r={0.4} />)}
+      <B p={[0, Hh / 2 - 0.02, 0.04]} s={[W, 0.04, 0.05]} c="#141414" r={0.4} />
+      <B p={[0, -Hh / 2 + 0.02, 0.04]} s={[W, 0.04, 0.05]} c="#141414" r={0.4} />
+      <B p={[0, 0, 0.045]} s={[0.025, Hh, 0.035]} c="#141414" r={0.4} />
+      {[0.75, -0.6].map(y => <B key={y} p={[0, y, 0.045]} s={[W, 0.025, 0.035]} c="#141414" r={0.4} />)}
+      {/* the glass: a faint warm reflection of the room */}
+      <mesh position={[0, 0, 0.07]}>
+        <planeGeometry args={[W - 0.06, Hh - 0.06]} />
+        <meshBasicMaterial map={glassSheen} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </mesh>
+      {/* stone sill and the city light on the floor */}
+      <B p={[0, -Hh / 2 - 0.02, depth + 0.04]} s={[W + 0.14, 0.04, 0.2]} c="#d9d2c6" r={0.6} />
+      <Halo p={[0, -Hh / 2 + 0.008 - 0.05, 0.75]} size={[1.3, 1.4]} rot={[-Math.PI / 2, 0, 0]} color="#8fa0ff" strength={0.16} />
     </group>
   );
 }
@@ -180,22 +339,19 @@ export function Living({ w }: { w: number }) {
       <group position={[-w / 2 + 0.02, 2.2, -0.2]} rotation={[0, Math.PI / 2, 0]}>
         <B p={[0, 0, 0]} s={[0.9, 1.2, 0.04]} c="#141414" />
         <B p={[0, 0, 0.022]} s={[0.84, 1.14, 0.005]} c="#efe9df" r={0.9} />
-        <Pic p={[0, 0, 0.026]} s={[0.66, 0.96]} map={tex.cat} />
+        <Suspense fallback={<Pic p={[0, 0, 0.026]} s={[0.66, 0.96]} map={tex.cat} />}><Artwork file="living/art_monet.webp" p={[0, 0, 0.026]} size={[0.66, 0.96]} /></Suspense>
+        <PictureLight y={0.68} w={0.5} />
       </group>
       <group position={[-0.1, 2.35, back + 0.03]}>
-        <B p={[0, 0, 0]} s={[0.62, 0.8, 0.03]} c="#141414" />
-        <B p={[0, 0, 0.017]} s={[0.56, 0.74, 0.005]} c="#efe9df" r={0.9} />
-        <Pic p={[0, 0, 0.021]} s={[0.44, 0.62]} map={tex.abs} />
-        <Halo p={[0, 0.25, -0.01]} size={[1.0, 0.8]} color={WARM} strength={0.18} />
+        <B p={[0, 0, 0]} s={[0.82, 0.62, 0.03]} c="#141414" />
+        <B p={[0, 0, 0.017]} s={[0.76, 0.56, 0.005]} c="#efe9df" r={0.9} />
+        <Suspense fallback={<Pic p={[0, 0, 0.021]} s={[0.56, 0.4]} map={tex.abs} />}><Artwork file="living/art_wave.webp" p={[0, 0, 0.021]} size={[0.56, 0.4]} /></Suspense>
+        <PictureLight y={0.37} w={0.42} />
       </group>
 
       {/* tall window at night (back right) with a frame and mullions, a potted tree in front */}
       <group position={[0.95, 2.0, back + 0.02]}>
-        <B p={[0, 0, 0]} s={[1.2, 4.0, 0.08]} c="#151515" r={0.4} />
-        <Pic p={[0, 0, 0.045]} s={[1.08, 3.88]} map={tex.night} glow />
-        <B p={[0, 0, 0.06]} s={[0.035, 3.88, 0.03]} c="#151515" r={0.4} />
-        <B p={[0, 0.6, 0.06]} s={[1.08, 0.035, 0.03]} c="#151515" r={0.4} />
-        <B p={[0, -1.94, 0.12]} s={[1.24, 0.04, 0.16]} c="#d9d2c6" r={0.6} />
+        <Suspense fallback={<Pic p={[0, 0, 0.045]} s={[1.08, 3.88]} map={tex.night} glow />}><WindowView /></Suspense>
       </group>
       <Suspense fallback={
         <group position={[1.15, 0, back + 0.75]}>
@@ -203,7 +359,7 @@ export function Living({ w }: { w: number }) {
           <Sp p={[0, 1.2, 0]} rad={0.45} sc={[1, 1.3, 1]} c="#2f5a33" r={1} />
         </group>
       }>
-        <True p={[1.15, 0, back + 0.85]} rot={0.6}><Model path="living/potted_plant_01.glb" p={[0, 0, 0]} s={1.45} /></True>
+        <True p={[1.6, 0, back + 0.8]} rot={0.6}><Model path="living/potted_plant_01.glb" p={[0, 0, 0]} s={1.45} /></True>
       </Suspense>
 
       {/* hanging fireplace over a low stone hearth (right) */}
@@ -226,15 +382,18 @@ export function Living({ w }: { w: number }) {
           <Model path="reading/throw_pillows_01.glb" p={[0.2, 0.5, -0.22]} s={0.95} />
         </True>
         <True p={[0.45, 0, 1.45]} rot={0.08}>
-          <Model path="living/modern_coffee_table_02.glb" p={[0, 0, 0]} s={0.85} />
-          <Model path="living/ceramic_vase_01.glb" p={[0.2, 0.315, -0.08]} s={0.55} />
+          <Model path="living/coffee_table_round_01.glb" p={[0, 0, 0]} s={0.7} />
+          <Model path="living/ceramic_vase_01.glb" p={[0.15, 0.343, -0.08]} s={0.5} />
+          <Instanced path="reading/book_encyclopedia_set_01.glb" items={[{ p: [-0.25, 0.343, 0.05], rot: [0, 0, Math.PI / 2], s: 0.36, tint: '#cfc4b4' }]} />
         </True>
       </Suspense>
-      <group position={[-1.75, 0, 1.95]}>
-        <Cy p={[0, 0.5, 0]} rt={0.2} rb={0.2} h={0.03} c="#1b1b1b" m={0.3} r={0.4} />
-        <Cy p={[0, 0.25, 0]} rt={0.015} rb={0.015} h={0.5} c="#1b1b1b" m={0.5} r={0.4} />
-        <Cy p={[0, 0.01, 0]} rt={0.14} rb={0.15} h={0.02} c="#1b1b1b" m={0.5} r={0.4} />
-      </group>
+      {/* small side table by the chaise: the same steel-legged table, narrower and taller */}
+      <Suspense fallback={null}>
+        <True p={[-1.75, 0, 1.95]}>
+          <group scale={[0.34, 1.12, 0.34]}><Model path="living/coffee_table_round_01.glb" p={[0, 0, 0]} /></group>
+          <Model path="living/ceramic_vase_03.glb" p={[0.03, 0.548, 0]} s={0.5} />
+        </True>
+      </Suspense>
 
       <pointLight position={[0, H - 0.5, 0.6]} color="#ffdcb0" intensity={7} distance={8} decay={1.5} />
       <pointLight position={[-1.3, 2.4, back + 1.0]} color="#ffd29a" intensity={3} distance={4} decay={1.8} />
