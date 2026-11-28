@@ -9,9 +9,9 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Halo, Spill } from '../glow';
 import { Model, Surface } from '../models';
-import { B, D, H, Led, Pic, Shell, Track, type V3 } from '../parts';
+import { B, D, H, Led, Shell, Track, type V3 } from '../parts';
 import { DEPTH } from '../scene';
-import { jersey, marble, panels } from '../textures';
+import { marble, panels } from '../textures';
 
 const WARM = '#ffd9a0';
 const METALS = { gold: '#e2b24e', silver: '#d9dee5', bronze: '#c27c48' };
@@ -138,34 +138,214 @@ function Cabinet({ w, h, shelves, seed, fix }: { w: number; h: number; shelves: 
   );
 }
 
-/* ---------- framed things ---------- */
+/* ---------- framed shirts ---------- */
 
-/** A shirt in a deep shadow box: black frame, a backing board, the shirt standing off it, glass in front. */
-function ShadowBox({ p, rot, size, map }: { p: V3; rot?: V3; size: [number, number]; map: THREE.Texture }) {
+/** Club colours per shirt: body, trim, number. */
+const KITS = [
+  { body: '#f2f2f0', trim: '#1d3f9e', num: '#1d3f9e', n: '11', stripes: false },
+  { body: '#b3122e', trim: '#f2f2f0', num: '#f2f2f0', n: '11', stripes: false },
+  { body: '#1d3f9e', trim: '#f2c84a', num: '#f2f2f0', n: '9', stripes: true },
+  { body: '#0f0f10', trim: '#c9a227', num: '#c9a227', n: '7', stripes: false },
+  { body: '#2a7a3e', trim: '#f2f2f0', num: '#f2f2f0', n: '10', stripes: false },
+  { body: '#f2f2f0', trim: '#b3122e', num: '#b3122e', n: '23', stripes: true },
+];
+
+/** The shirt's front print: body colour with a faint knit, side stripes or not, trim on the sleeves and the number. */
+function kitTexture(i: number) {
+  const k = KITS[i % KITS.length];
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  g.fillStyle = k.body; g.fillRect(0, 0, 256, 256);
+  if (k.stripes) { g.fillStyle = k.trim; for (let x = 18; x < 256; x += 52) g.fillRect(x, 0, 16, 256); }
+  // knit texture: fine light and dark rows
+  for (let y = 0; y < 256; y += 2) { g.fillStyle = y % 4 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.05)'; g.fillRect(0, y, 256, 1); }
+  // sleeve cuffs sit at the outer top corners of the outline (uv mapped from the shape's bounds)
+  g.fillStyle = k.trim; g.fillRect(0, 70, 22, 46); g.fillRect(234, 70, 22, 46);
+  g.fillStyle = k.num; g.font = 'bold 92px "Arial Black", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 6; g.strokeStyle = k.trim; g.strokeText(k.n, 128, 150); g.fillText(k.n, 128, 150);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+
+/**
+ * A football shirt as a soft 3D shape: the outline (body, sleeves, a dip for the collar) extruded with deep
+ * rounded edges so it looks filled out, with gentle folds pressed into the front and a separate collar band.
+ * About 0.42 m wide; front faces +z.
+ */
+const SHIRT_W = 0.42, SHIRT_H = 0.48;
+function shirtShape() {
+  const S = new THREE.Shape();
+  const P = (x: number, y: number): [number, number] => [x * 0.21, y * 0.24];
+  S.moveTo(...P(-0.2, 1));
+  S.quadraticCurveTo(...P(0, 0.78), ...P(0.2, 1));
+  S.lineTo(...P(0.58, 0.93));
+  S.lineTo(...P(1.0, 0.58));
+  S.lineTo(...P(0.82, 0.3));
+  S.lineTo(...P(0.56, 0.45));
+  S.quadraticCurveTo(...P(0.6, -0.2), ...P(0.56, -1));
+  S.quadraticCurveTo(...P(0, -1.05), ...P(-0.56, -1));
+  S.quadraticCurveTo(...P(-0.6, -0.2), ...P(-0.56, 0.45));
+  S.lineTo(...P(-0.82, 0.3));
+  S.lineTo(...P(-1.0, 0.58));
+  S.lineTo(...P(-0.58, 0.93));
+  S.lineTo(...P(-0.2, 1));
+  return S;
+}
+
+const shirtGeometry = (() => {
+  const S = shirtShape();
+  const g = new THREE.ExtrudeGeometry(S, { depth: 0.006, bevelEnabled: true, bevelThickness: 0.018, bevelSize: 0.012, bevelSegments: 5, curveSegments: 16, steps: 1 });
+  // folds: soft diagonal creases on the front, deeper towards the hem; uv from the outline's bounds
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  const uv = g.attributes.uv as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const front = z > 0.004 ? 1 : 0;
+    // two shoulder-to-hem drapes, a sag across the chest and fine crinkles: enough relief for the light to catch
+    const fold = 0.016 * Math.sin(x * 22 + y * 12) * (0.7 - y * 1.6) + 0.01 * Math.cos(x * 9 - y * 20) + 0.004 * Math.sin(y * 55 + x * 8);
+    pos.setZ(i, z + front * fold);
+    uv.setXY(i, x / 0.42 + 0.5, y / 0.48 + 0.5);
+  }
+  g.computeVertexNormals();
+  return g;
+})();
+
+/** The shirt outline as a white-on-black mask, in the same uv space as the body (bounds 0.42 × 0.48). */
+const shirtMask = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#000'; g.fillRect(0, 0, 256, 256);
+  g.fillStyle = '#fff'; g.beginPath();
+  shirtShape().getPoints(24).forEach((v, i) => {
+    const x = (v.x / SHIRT_W + 0.5) * 256, y = (1 - (v.y / SHIRT_H + 0.5)) * 256;
+    if (i) g.lineTo(x, y); else g.moveTo(x, y);
+  });
+  g.fill();
+  return new THREE.CanvasTexture(c);
+})();
+
+/**
+ * The shirt's front: a finely divided panel cut to the outline by the mask, filled out in the middle like
+ * a body is inside, with drapes from the shoulders, a sag across the chest and fine crinkles.
+ */
+const shirtFront = (() => {
+  const g = new THREE.PlaneGeometry(SHIRT_W, SHIRT_H, 84, 96);
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i);
+    const torso = Math.max(0, 1 - (x / 0.13) ** 2) ** 0.5 * Math.max(0, 1 - ((y + 0.02) / 0.26) ** 2) ** 0.5;
+    const sleeve = Math.max(0, 1 - ((Math.abs(x) - 0.16) / 0.06) ** 2 - ((y - 0.13) / 0.07) ** 2) * 0.5;
+    const fold = 0.012 * Math.sin(x * 22 + y * 12) * (0.7 - y * 1.6) + 0.007 * Math.cos(x * 9 - y * 20) + 0.003 * Math.sin(y * 55 + x * 8);
+    pos.setZ(i, 0.03 * torso + 0.018 * sleeve + fold);
+  }
+  g.computeVertexNormals();
+  return g;
+})();
+
+/** A shirt pinned in a deep shadow box: black frame, dark backing board, the 3D shirt standing off it, glass. */
+function ShadowBox({ p, rot, size, kit }: { p: V3; rot?: V3; size: [number, number]; kit: number }) {
   const [fw, fh] = size;
+  const map = useMemo(() => kitTexture(kit), [kit]);
+  const scale = Math.min((fw - 0.1) / 0.42, (fh - 0.1) / 0.48);
+  const trim = KITS[kit % KITS.length].trim;
   return (
     <group position={p} rotation={rot}>
-      <B p={[0, 0, 0.02]} s={[fw, fh, 0.08]} c="#0e0e0f" r={0.4} />
-      <B p={[0, 0, 0.061]} s={[fw - 0.06, fh - 0.06, 0.004]} c="#1c1c20" r={0.9} />
-      <Pic p={[0, 0, 0.075]} s={[fw - 0.14, fh - 0.12]} map={map} e="#ffffff" ei={0.15} />
-      <mesh position={[0, 0, 0.062 + 0.002]}><planeGeometry args={[fw - 0.06, fh - 0.06]} /><meshPhysicalMaterial color="#ffffff" transparent opacity={0.07} roughness={0.03} clearcoat={1} depthWrite={false} /></mesh>
+      {/* frame: four rails and a backing board, deep enough for the shirt */}
+      <B p={[0, 0, -0.005]} s={[fw - 0.04, fh - 0.04, 0.01]} c="#17171a" r={0.95} />
+      {[-1, 1].map(s => <B key={`v${s}`} p={[s * (fw / 2 - 0.02), 0, 0.04]} s={[0.04, fh, 0.1]} c="#0e0e0f" r={0.4} />)}
+      {[-1, 1].map(s => <B key={`h${s}`} p={[0, s * (fh / 2 - 0.02), 0.04]} s={[fw, 0.04, 0.1]} c="#0e0e0f" r={0.4} />)}
+      <group position={[0, -0.01, 0.03]} scale={scale}>
+        <mesh geometry={shirtGeometry}><meshStandardMaterial map={map} roughness={0.82} /></mesh>
+        <mesh geometry={shirtFront} position={[0, 0, 0.026]}>
+          <meshStandardMaterial map={map} alphaMap={shirtMask} alphaTest={0.5} roughness={0.85} side={THREE.DoubleSide} />
+        </mesh>
+        {/* collar band */}
+        <mesh position={[0, 0.212, 0.05]} rotation={[0.25, 0, 0]}><torusGeometry args={[0.045, 0.008, 8, 24, Math.PI]} /><meshStandardMaterial color={trim} roughness={0.7} /></mesh>
+      </group>
+      {/* glass with a faint sheen */}
+      <mesh position={[0, 0, 0.088]}><planeGeometry args={[fw - 0.08, fh - 0.08]} /><meshPhysicalMaterial color="#ffffff" transparent opacity={0.08} roughness={0.03} clearcoat={1} depthWrite={false} /></mesh>
+      <Halo p={[0, fh / 2 - 0.05, 0.01]} size={[fw, fh * 0.7]} color={WARM} strength={0.12} />
     </group>
   );
 }
 
-/** A framed medal on green felt: ribbon in two colours, a struck gold medal with a raised rim. */
+/* ---------- framed medal ---------- */
+
+/** Satin ribbon: vertical bands of red, white and blue. */
+function ribbonTexture() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 8;
+  const g = c.getContext('2d')!;
+  const bands: [string, number, number][] = [['#b4202f', 0, 22], ['#f4f1ea', 22, 20], ['#1e3f9a', 42, 22]];
+  bands.forEach(([col, x, w]) => { g.fillStyle = col; g.fillRect(x, 0, w, 8); });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+/** One half of the ribbon: a strip that bows out from the felt, top fixed to the frame, bottom at the ring. */
+function RibbonHalf({ from, to, map }: { from: [number, number]; to: [number, number]; map: THREE.Texture }) {
+  const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const geo = useMemo(() => {
+    const g = new THREE.PlaneGeometry(0.06, len, 1, 16);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      const t = pos.getY(i) / len + 0.5; // 0 at the ring, 1 at the top
+      pos.setZ(i, 0.022 * Math.sin(t * Math.PI) + 0.004 * Math.sin(pos.getX(i) * 60) * t);
+    }
+    g.computeVertexNormals();
+    return g;
+  }, [len]);
+  const mid: V3 = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2, 0.004];
+  const ang = Math.atan2(from[1] - to[1], from[0] - to[0]) - Math.PI / 2;
+  return (
+    <mesh geometry={geo} position={mid} rotation={[0, 0, ang]}>
+      <meshStandardMaterial map={map} roughness={0.42} metalness={0.05} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+/**
+ * The medal: struck gold disc with a raised rim, a laurel wreath and a five-pointed star in relief on the
+ * face, hanging from a ring and a red-white-blue satin ribbon, mounted proud of green felt in a deep frame.
+ */
 function FramedMedal() {
-  const medal = useMemo(() => lathe([[0, 0], [0.085, 0], [0.085, 0.006], [0.075, 0.009], [0.07, 0.006], [0.03, 0.008], [0, 0.011]], 48), []);
+  const gold = useMemo(() => new THREE.MeshStandardMaterial({ color: METALS.gold, metalness: 1, roughness: 0.22, envMapIntensity: 1.8 }), []);
+  const disc = useMemo(() => lathe([[0, 0], [0.08, 0], [0.084, 0.003], [0.084, 0.01], [0.078, 0.013], [0.072, 0.011], [0.068, 0.008], [0, 0.009]], 64), []);
+  const star = useMemo(() => {
+    const s = new THREE.Shape();
+    for (let i = 0; i < 10; i++) {
+      const a = Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 0.014 : 0.034;
+      const x = Math.cos(a) * r, y = Math.sin(a) * r;
+      if (i) s.lineTo(x, y); else s.moveTo(x, y);
+    }
+    return new THREE.ExtrudeGeometry(s, { depth: 0.002, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.0015, bevelSegments: 2 });
+  }, []);
+  // laurel: two arcs of small leaves around the star
+  const leaves = useMemo(() => {
+    const out: { p: V3; rz: number }[] = [];
+    for (const side of [-1, 1]) for (let i = 0; i < 9; i++) {
+      const a = -Math.PI / 2 + side * (0.35 + i * 0.27);
+      out.push({ p: [Math.cos(a) * 0.052, Math.sin(a) * 0.052, 0.011], rz: a + side * 0.6 });
+    }
+    return out;
+  }, []);
+  const ribbon = useMemo(() => ribbonTexture(), []);
+  const ring: [number, number] = [0, 0.02];
   return (
     <group>
-      <B p={[0, 0, 0]} s={[0.62, 0.74, 0.05]} c="#121212" r={0.4} />
-      <B p={[0, 0, 0.026]} s={[0.54, 0.66, 0.004]} c="#1f3a26" r={1} />
-      <B p={[-0.055, 0.14, 0.031]} s={[0.07, 0.34, 0.004]} rot={[0, 0, 0.38]} c="#b4202f" r={0.7} />
-      <B p={[0.055, 0.14, 0.033]} s={[0.07, 0.34, 0.004]} rot={[0, 0, -0.38]} c="#1e3f9a" r={0.7} />
-      <mesh geometry={medal} position={[0, -0.1, 0.034]} rotation={[Math.PI / 2, 0, 0]} material={metal} scale={[1, 1, 1]}>
-        <meshStandardMaterial color={METALS.gold} metalness={1} roughness={0.25} />
-      </mesh>
-      <mesh position={[0, 0.03, 0.036]} rotation={[0, 0, Math.PI / 2]}><torusGeometry args={[0.018, 0.004, 8, 20]} /><meshStandardMaterial color={METALS.gold} metalness={1} roughness={0.25} /></mesh>
+      {/* deep frame on green felt */}
+      <B p={[0, 0, -0.005]} s={[0.56, 0.68, 0.01]} c="#1f3a26" r={1} />
+      {[-1, 1].map(s => <B key={`v${s}`} p={[s * 0.3, 0, 0.03]} s={[0.04, 0.74, 0.08]} c="#121212" r={0.4} />)}
+      {[-1, 1].map(s => <B key={`h${s}`} p={[0, s * 0.35, 0.03]} s={[0.64, 0.04, 0.08]} c="#121212" r={0.4} />)}
+      {/* ribbon from the top of the felt to the ring */}
+      <RibbonHalf from={[-0.12, 0.3]} to={[ring[0] - 0.012, ring[1]]} map={ribbon} />
+      <RibbonHalf from={[0.12, 0.3]} to={[ring[0] + 0.012, ring[1]]} map={ribbon} />
+      <group position={[0, -0.1, 0.02]}>
+        <mesh position={[0, 0.103, 0.006]} material={gold}><torusGeometry args={[0.014, 0.0035, 10, 24]} /></mesh>
+        <mesh geometry={disc} material={gold} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh geometry={star} material={gold} position={[0, 0, 0.009]} />
+        {leaves.map((l, i) => (
+          <mesh key={i} position={l.p} rotation={[0, 0, l.rz]} scale={[0.011, 0.005, 0.003]} material={gold}><sphereGeometry args={[1, 10, 8]} /></mesh>
+        ))}
+      </group>
+      <mesh position={[0, 0, 0.068]}><planeGeometry args={[0.56, 0.66]} /><meshPhysicalMaterial color="#ffffff" transparent opacity={0.07} roughness={0.03} clearcoat={1} depthWrite={false} /></mesh>
     </group>
   );
 }
@@ -175,7 +355,6 @@ function FramedMedal() {
 export function Trophies({ w }: { w: number }) {
   const tex = useMemo(() => ({
     wall: panels('#3a2616', 'trophy'), marble: marble('marble-wall', '#cfcac2'), floor: marble('marble-floor', '#f1efeb'),
-    shirts: [0, 1, 2, 3, 4, 5].map(i => jersey(i)),
   }), []);
   const back = -D / 2;
   const bigCup = useMemo<Cup[]>(() => [{ kind: 'cup', p: [0, 0, 0], s: 2.6, metal: 'gold' }], []);
@@ -209,9 +388,9 @@ export function Trophies({ w }: { w: number }) {
       <group position={[w / 2 - 0.25, 0, 0.35]} rotation={[0, -Math.PI / 2, 0]}><Cabinet w={1.6} h={3.0} shelves={5} seed={4} fix={sideFix} /></group>
 
       {/* framed shirts in shadow boxes high on the walls */}
-      {[-1.45, 1.45].map((x, i) => <ShadowBox key={x} p={[x, 3.6, back + 0.02]} size={[0.58, 0.64]} map={tex.shirts[i]} />)}
+      {[-1.45, 1.45].map((x, i) => <ShadowBox key={x} p={[x, 3.6, back + 0.02]} size={[0.58, 0.64]} kit={i} />)}
       {[-1, 1].map(side => [0, 1].map(k => (
-        <ShadowBox key={`${side}${k}`} p={[side * (w / 2 - 0.02), 3.55, -1.3 + k * 1.3]} rot={[0, -side * Math.PI / 2, 0]} size={[0.52, 0.6]} map={tex.shirts[2 + k + (side > 0 ? 2 : 0)]} />
+        <ShadowBox key={`${side}${k}`} p={[side * (w / 2 - 0.02), 3.55, -1.3 + k * 1.3]} rot={[0, -side * Math.PI / 2, 0]} size={[0.52, 0.6]} kit={2 + k + (side > 0 ? 2 : 0)} />
       )))}
 
       {/* black lacquer pedestal with the big cup under its own spot */}
@@ -226,11 +405,14 @@ export function Trophies({ w }: { w: number }) {
         <pointLight position={[0, 2.2, 0.6]} color="#fff0d0" intensity={2} distance={2.2} decay={1.8} />
       </group>
 
-      {/* four leather lounge chairs turned towards the pedestal (Poly Haven scan) */}
+      {/* four leather lounge chairs (Poly Haven scan), each turned to face the middle of the room.
+          The scan's seat faces +z; the angle is worked out in true (unsquashed) depth. */}
       <Suspense fallback={null}>
-        {([[-1.2, 0.6, 0.75], [-1.0, 1.75, 1.15], [1.2, 0.6, -0.75], [1.0, 1.75, -1.15]] as const).map(([x, z, r], i) => (
-          <True key={i} p={[x, 0, z]} rot={r + Math.PI}><Model path="trophies/lounge_chair.glb" p={[0, 0, 0]} s={0.82} /></True>
-        ))}
+        {([[-1.2, 0.6], [-1.0, 1.75], [1.2, 0.6], [1.0, 1.75]] as const).map(([x, z], i) => {
+          const mid = 1.15;
+          const rot = Math.atan2(-x, (mid - z) * DEPTH);
+          return <True key={i} p={[x, 0, z]} rot={rot}><Model path="trophies/lounge_chair.glb" p={[0, 0, 0]} s={0.82} /></True>;
+        })}
       </Suspense>
 
       <Track x1={-1.6} x2={1.6} z={0.7} heads={4} />
