@@ -69,7 +69,7 @@ export function CinemaScreen({ item, caption, className, compact }: {
 
   return (
     <div
-      className={cn('cine relative isolate overflow-hidden rounded-xl border border-line bg-[#0b080c] [container-type:inline-size]', compact ? 'aspect-[2/1] md:aspect-[3.6/1]' : 'aspect-[4/3] sm:aspect-[2/1]', className)}
+      className={cn('cine relative isolate overflow-hidden rounded-xl border border-line bg-[#0b080c] [container-type:inline-size]', compact ? 'aspect-[2/1] md:aspect-[2.8/1]' : 'aspect-[4/3] sm:aspect-[2/1]', className)}
       data-open={open || undefined}
     >
       {/* room: dark walls, the screen's glow on them and on the floor */}
@@ -80,7 +80,7 @@ export function CinemaScreen({ item, caption, className, compact }: {
       )}
 
       {/* screen */}
-      <div className={cn('absolute left-1/2 -translate-x-1/2', compact ? 'top-[11%] w-[54%] md:w-[34%]' : 'top-[10%] w-[82%] sm:top-[8%] sm:w-[66%]')}>
+      <div className={cn('absolute left-1/2 -translate-x-1/2', compact ? 'top-[9%] w-[64%] md:w-[48%]' : 'top-[10%] w-[82%] sm:top-[8%] sm:w-[66%]')}>
         <div className="relative aspect-[2/1] overflow-hidden rounded-[3px] bg-[#050406] shadow-[0_0_0_3px_#151017,0_0_0_5px_#0a070b]">
           {playing && (
             <div className="cine-flicker absolute inset-0">
