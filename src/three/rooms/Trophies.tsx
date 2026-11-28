@@ -1,7 +1,7 @@
 /**
  * Trophy room after the reference: dark wood panelled walls with a white marble feature wall, lit glass
- * cabinets of gold, silver and bronze cups on both sides, framed shirts in shadow boxes and a framed medal,
- * a black pedestal with a big cup under a spot, four leather lounge chairs on a marble tile floor.
+ * cabinets of gold, silver and bronze cups on both sides, a framed medal,
+ * a black pedestal with a big cup under a spot, two leather lounge chairs on a marble tile floor.
  * Cups are turned from profiles (instanced); chairs, marble and wood are CC0 scans from Poly Haven.
  */
 import { Suspense, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
@@ -138,120 +138,6 @@ function Cabinet({ w, h, shelves, seed, fix }: { w: number; h: number; shelves: 
   );
 }
 
-/* ---------- framed shirts ---------- */
-
-/** Club colours per shirt: body, trim, number. */
-const KITS = [
-  { body: '#f2f2f0', trim: '#1d3f9e', num: '#1d3f9e', n: '11', stripes: false },
-  { body: '#b3122e', trim: '#f2f2f0', num: '#f2f2f0', n: '11', stripes: false },
-  { body: '#1d3f9e', trim: '#f2c84a', num: '#f2f2f0', n: '9', stripes: true },
-  { body: '#0f0f10', trim: '#c9a227', num: '#c9a227', n: '7', stripes: false },
-  { body: '#2a7a3e', trim: '#f2f2f0', num: '#f2f2f0', n: '10', stripes: false },
-  { body: '#f2f2f0', trim: '#b3122e', num: '#b3122e', n: '23', stripes: true },
-];
-
-/** The shirt's front print: body colour with a faint knit, side stripes or not, trim on the sleeves and the number. */
-function kitTexture(i: number) {
-  const k = KITS[i % KITS.length];
-  const c = document.createElement('canvas'); c.width = c.height = 256;
-  const g = c.getContext('2d')!;
-  g.fillStyle = k.body; g.fillRect(0, 0, 256, 256);
-  if (k.stripes) { g.fillStyle = k.trim; for (let x = 18; x < 256; x += 52) g.fillRect(x, 0, 16, 256); }
-  // knit texture: fine light and dark rows
-  for (let y = 0; y < 256; y += 2) { g.fillStyle = y % 4 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.05)'; g.fillRect(0, y, 256, 1); }
-  // sleeve cuffs sit at the outer top corners of the outline (uv mapped from the shape's bounds)
-  g.fillStyle = k.trim; g.fillRect(0, 70, 22, 46); g.fillRect(234, 70, 22, 46);
-  g.fillStyle = k.num; g.font = 'bold 92px "Arial Black", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.lineWidth = 6; g.strokeStyle = k.trim; g.strokeText(k.n, 128, 150); g.fillText(k.n, 128, 150);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
-}
-
-/** The shirt outline (body, sleeves, a dip for the collar), about 0.42 m wide. */
-const SHIRT_W = 0.42, SHIRT_H = 0.48;
-function shirtShape() {
-  const S = new THREE.Shape();
-  const P = (x: number, y: number): [number, number] => [x * 0.21, y * 0.24];
-  S.moveTo(...P(-0.2, 1));
-  S.quadraticCurveTo(...P(0, 0.78), ...P(0.2, 1));
-  S.lineTo(...P(0.58, 0.93));
-  S.lineTo(...P(1.0, 0.58));
-  S.lineTo(...P(0.82, 0.3));
-  S.lineTo(...P(0.56, 0.45));
-  S.quadraticCurveTo(...P(0.6, -0.2), ...P(0.56, -1));
-  S.quadraticCurveTo(...P(0, -1.05), ...P(-0.56, -1));
-  S.quadraticCurveTo(...P(-0.6, -0.2), ...P(-0.56, 0.45));
-  S.lineTo(...P(-0.82, 0.3));
-  S.lineTo(...P(-1.0, 0.58));
-  S.lineTo(...P(-0.58, 0.93));
-  S.lineTo(...P(-0.2, 1));
-  return S;
-}
-
-/** The shirt outline as a white-on-black mask, in the same uv space as the body (bounds 0.42 × 0.48). */
-const shirtMask = (() => {
-  const c = document.createElement('canvas'); c.width = c.height = 256;
-  const g = c.getContext('2d')!;
-  g.fillStyle = '#000'; g.fillRect(0, 0, 256, 256);
-  g.fillStyle = '#fff'; g.beginPath();
-  shirtShape().getPoints(24).forEach((v, i) => {
-    const x = (v.x / SHIRT_W + 0.5) * 256, y = (1 - (v.y / SHIRT_H + 0.5)) * 256;
-    if (i) g.lineTo(x, y); else g.moveTo(x, y);
-  });
-  g.fill();
-  return new THREE.CanvasTexture(c);
-})();
-
-/**
- * The shirt's front: a finely divided panel cut to the outline by the mask, filled out in the middle like
- * a body is inside, with drapes from the shoulders, a sag across the chest and fine crinkles.
- */
-const shirtFront = (() => {
-  const g = new THREE.PlaneGeometry(SHIRT_W, SHIRT_H, 84, 96);
-  const pos = g.attributes.position as THREE.BufferAttribute;
-  const col = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i);
-    const torso = Math.max(0, 1 - (x / 0.13) ** 2) ** 0.5 * Math.max(0, 1 - ((y + 0.02) / 0.26) ** 2) ** 0.5;
-    const sleeve = Math.max(0, 1 - ((Math.abs(x) - 0.16) / 0.06) ** 2 - ((y - 0.13) / 0.07) ** 2) * 0.5;
-    const fold = 0.016 * Math.sin(x * 22 + y * 12) * (0.7 - y * 1.6) + 0.009 * Math.cos(x * 9 - y * 20) + 0.003 * Math.sin(y * 55 + x * 8);
-    const body = 0.045 * torso + 0.025 * sleeve;
-    pos.setZ(i, body + fold);
-    // shading: the fabric falls away towards the edges and into the fold valleys
-    const shade = 0.62 + 0.38 * Math.min(1, body / 0.04) + 9 * Math.min(0, fold);
-    const v = Math.max(0.4, Math.min(1, shade));
-    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
-  }
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  g.computeVertexNormals();
-  return g;
-})();
-
-/** A shirt pinned in a deep shadow box: black frame, dark backing board, the 3D shirt standing off it, glass. */
-function ShadowBox({ p, rot, size, kit }: { p: V3; rot?: V3; size: [number, number]; kit: number }) {
-  const [fw, fh] = size;
-  const map = useMemo(() => kitTexture(kit), [kit]);
-  const scale = Math.min((fw - 0.1) / 0.42, (fh - 0.1) / 0.48);
-  const trim = KITS[kit % KITS.length].trim;
-  return (
-    <group position={p} rotation={rot}>
-      {/* frame: four rails and a backing board, deep enough for the shirt */}
-      <B p={[0, 0, -0.005]} s={[fw - 0.04, fh - 0.04, 0.01]} c="#17171a" r={0.95} />
-      {[-1, 1].map(s => <B key={`v${s}`} p={[s * (fw / 2 - 0.02), 0, 0.04]} s={[0.04, fh, 0.1]} c="#0e0e0f" r={0.4} />)}
-      {[-1, 1].map(s => <B key={`h${s}`} p={[0, s * (fh / 2 - 0.02), 0.04]} s={[fw, 0.04, 0.1]} c="#0e0e0f" r={0.4} />)}
-      <group position={[0, -0.01, 0.03]} scale={scale}>
-        <mesh geometry={shirtFront} position={[0, 0, 0.002]}>
-          <meshStandardMaterial map={map} alphaMap={shirtMask} alphaTest={0.5} vertexColors roughness={0.85} side={THREE.DoubleSide} />
-        </mesh>
-        {/* collar band */}
-        <mesh position={[0, 0.212, 0.03]} rotation={[0.25, 0, 0]}><torusGeometry args={[0.045, 0.008, 8, 24, Math.PI]} /><meshStandardMaterial color={trim} roughness={0.7} /></mesh>
-      </group>
-      {/* glass with a faint sheen */}
-      <mesh position={[0, 0, 0.088]}><planeGeometry args={[fw - 0.08, fh - 0.08]} /><meshPhysicalMaterial color="#ffffff" transparent opacity={0.08} roughness={0.03} clearcoat={1} depthWrite={false} /></mesh>
-      <Halo p={[0, fh / 2 - 0.05, 0.01]} size={[fw, fh * 0.7]} color={WARM} strength={0.12} />
-    </group>
-  );
-}
-
 /* ---------- framed medal ---------- */
 
 /** Satin ribbon: vertical bands of red, white and blue. */
@@ -371,12 +257,6 @@ export function Trophies({ w }: { w: number }) {
       <group position={[-w / 2 + 0.25, 0, 0.35]} rotation={[0, Math.PI / 2, 0]}><Cabinet w={1.6} h={3.0} shelves={5} seed={3} fix={sideFix} /></group>
       <group position={[w / 2 - 0.25, 0, 0.35]} rotation={[0, -Math.PI / 2, 0]}><Cabinet w={1.6} h={3.0} shelves={5} seed={4} fix={sideFix} /></group>
 
-      {/* framed shirts in shadow boxes high on the walls */}
-      {[-1.45, 1.45].map((x, i) => <ShadowBox key={x} p={[x, 3.6, back + 0.02]} size={[0.58, 0.64]} kit={i} />)}
-      {[-1, 1].map(side => [0, 1].map(k => (
-        <ShadowBox key={`${side}${k}`} p={[side * (w / 2 - 0.02), 3.55, -1.3 + k * 1.3]} rot={[0, -side * Math.PI / 2, 0]} size={[0.52, 0.6]} kit={2 + k + (side > 0 ? 2 : 0)} />
-      )))}
-
       {/* black lacquer pedestal with the big cup under its own spot */}
       <group position={[0, 0, back + 1.5]}>
         <True p={[0, 0, 0]}>
@@ -389,11 +269,11 @@ export function Trophies({ w }: { w: number }) {
         <pointLight position={[0, 2.2, 0.6]} color="#fff0d0" intensity={2} distance={2.2} decay={1.8} />
       </group>
 
-      {/* two leather lounge chairs (Poly Haven scan), facing each other across the pedestal.
+      {/* two leather lounge chairs (Poly Haven scan) in front, turned in towards each other and the pedestal, backs away from the cabinets.
           The scan's seat faces +z; the angle is worked out in true (unsquashed) depth. */}
       <Suspense fallback={null}>
-        {([[-1.15, 0.9], [1.15, 0.9]] as const).map(([x, z], i) => {
-          const mid = 0.9;
+        {([[-0.8, 1.55], [0.8, 1.55]] as const).map(([x, z], i) => {
+          const mid = 0.35; // a point between the chairs and the pedestal: they turn in at about 45 degrees
           const rot = Math.atan2(-x, (mid - z) * DEPTH);
           return <True key={i} p={[x, 0, z]} rot={rot}><Model path="trophies/lounge_chair.glb" p={[0, 0, 0]} s={0.82} /></True>;
         })}
