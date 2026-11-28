@@ -1,7 +1,7 @@
 /**
  * The cinema: a screen between velvet curtains, a projector beam over two rows of seats.
- * With a movie, the curtains open, the projector flickers on and the cover "plays": the whole poster,
- * centred on a 16:9 screen over a blurred, dimmed copy of itself, with a slow zoom and light grain.
+ * With a movie, the curtains open, the projector flickers on and the cover "plays": the screen takes the
+ * cover's own shape, so the whole poster fills it edge to edge, with a slow zoom and light grain.
  * The screen's light spills into the room.
  * Plain DOM and CSS (no WebGL), so real cover images always show and it costs almost nothing.
  */
@@ -11,17 +11,14 @@ import { cn } from '../ui/kit';
 
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h) % 360; };
 
-function Film({ item }: { item: Item }) {
+function Film({ item, onShape }: { item: Item; onShape: (ratio: number) => void }) {
   const [failed, setFailed] = useState(false);
   if (item.cover && !failed) {
     return (
       <div className="cine-zoom absolute inset-0">
-        {/* the poster's own colours fill the sides, blurred and dimmed */}
-        <img src={item.cover} alt="" aria-hidden="true" draggable={false}
-          className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-xl saturate-125 select-none" />
-        {/* the whole poster, full height */}
-        <img src={item.cover} alt="" draggable={false} onError={() => setFailed(true)}
-          className="absolute inset-y-0 left-1/2 h-full w-auto max-w-none -translate-x-1/2 object-contain shadow-[0_0_40px_rgba(0,0,0,.6)] select-none" />
+        <img src={item.cover} alt="" draggable={false} onError={() => { setFailed(true); onShape(16 / 9); }}
+          onLoad={e => { const im = e.currentTarget; if (im.naturalWidth && im.naturalHeight) onShape(im.naturalWidth / im.naturalHeight); }}
+          className="absolute inset-0 h-full w-full object-cover select-none" />
       </div>
     );
   }
@@ -73,10 +70,14 @@ export function CinemaScreen({ item, caption, className, compact }: {
     return () => clearTimeout(t);
   }, [item]);
   const playing = !!item;
+  // width / height of the screen: the cover's own shape once it has loaded (posters are about 2:3)
+  const [ratio, setRatio] = useState(item?.cover ? 2 / 3 : 16 / 9);
+  useEffect(() => { setRatio(item?.cover ? 2 / 3 : 16 / 9); }, [item?.cover]);
+  const clamped = Math.min(2.4, Math.max(0.5, ratio));
 
   return (
     <div
-      className={cn('cine relative isolate overflow-hidden rounded-xl border border-line bg-[#0b080c] [container-type:inline-size]', compact ? 'aspect-[16/9] md:aspect-[2.2/1]' : 'aspect-[4/3] sm:aspect-[16/9]', className)}
+      className={cn('cine relative isolate overflow-hidden rounded-xl border border-line bg-[#0b080c] [container-type:inline-size]', compact ? 'aspect-[4/3] md:aspect-[1.9/1]' : 'aspect-[4/3] sm:aspect-[16/9]', className)}
       data-open={open || undefined}
     >
       {/* room: dark walls, the screen's glow on them and on the floor */}
@@ -87,11 +88,11 @@ export function CinemaScreen({ item, caption, className, compact }: {
       )}
 
       {/* screen */}
-      <div className={cn('absolute left-1/2 -translate-x-1/2', compact ? 'top-[10%] w-[62%] md:w-[50%]' : 'top-[10%] w-[82%] sm:top-[9%] sm:w-[62%]')}>
-        <div className="relative aspect-[16/9] overflow-hidden rounded-[3px] bg-[#050406] shadow-[0_0_0_3px_#151017,0_0_0_5px_#0a070b]">
+      <div className={cn('absolute left-1/2 top-[9%] max-w-[84%] -translate-x-1/2', compact ? 'h-[66%]' : 'h-[64%]')} style={{ aspectRatio: String(clamped) }}>
+        <div className="relative h-full w-full overflow-hidden rounded-[3px] bg-[#050406] shadow-[0_0_0_3px_#151017,0_0_0_5px_#0a070b]">
           {playing && (
             <div className="cine-flicker absolute inset-0">
-              <Film item={item!} />
+              <Film item={item!} onShape={setRatio} />
               <div aria-hidden="true" className="cine-grain pointer-events-none absolute -inset-[30%] opacity-[0.10] mix-blend-overlay" />
               <div aria-hidden="true" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,.75)]" />
             </div>
